@@ -9,7 +9,8 @@ fun main() = application {
 //        width = 2560 // 1/3 of 3440 = 1146
 //        height = 1550
 //        position = IntVector2(1280, 0)
-        sketchSize(Displays.LG_ULTRAWIDE)
+        sketchSize(Display.LG_ULTRAWIDE)
+//        sketchSize(DisplayConfig.FULLSCREEN)
 
 //        windowResizable = true
         title = ""
