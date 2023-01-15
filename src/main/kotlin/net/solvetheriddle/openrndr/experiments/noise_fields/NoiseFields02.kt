@@ -45,7 +45,7 @@ class NoiseFields02 {
                 drawer.points(generateNoisyLines(100, drawer.bounds, seconds))
                 // erase old lines
                 drawer.fill = bgColor.opacify(0.05)
-                drawer.points(generateNoisyLines(100, drawer.bounds, seconds - 2))
+                drawer.points(generateNoisyLines(100, drawer.bounds, seconds - 3))
             }
         }
     }
