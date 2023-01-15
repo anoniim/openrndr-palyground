@@ -1,3 +1,7 @@
+@file:Suppress("unused")
+
+package net.solvetheriddle.openrndr
+
 import org.openrndr.Configuration
 import org.openrndr.Fullscreen
 import org.openrndr.math.IntVector2

@@ -1,4 +1,4 @@
-package explorers
+package net.solvetheriddle.openrndr.explorers
 
 import org.openrndr.application
 import org.openrndr.color.ColorRGBa
@@ -8,8 +8,7 @@ import org.openrndr.extensions.Screenshots
 import org.openrndr.extra.noise.random
 import org.openrndr.math.Vector2
 import org.openrndr.math.map
-import tools.PrintSize
-import tools.PrintSize.Companion.A4
+import net.solvetheriddle.openrndr.tools.PrintSize.Companion.A4
 import kotlin.math.ceil
 
 fun main() {

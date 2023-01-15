@@ -1,6 +1,7 @@
-package experiments
+package net.solvetheriddle.openrndr.experiments
 
-import sketchSize
+import net.solvetheriddle.openrndr.Display
+import net.solvetheriddle.openrndr.sketchSize
 import org.openrndr.application
 import org.openrndr.color.ColorRGBa
 
@@ -10,7 +11,7 @@ fun main() = application {
 //        height = 1550
 //        position = IntVector2(1280, 0)
         sketchSize(Display.LG_ULTRAWIDE)
-//        sketchSize(DisplayConfig.FULLSCREEN)
+//        net.solvetheriddle.openrndr.sketchSize(DisplayConfig.FULLSCREEN)
 
 //        windowResizable = true
         title = ""

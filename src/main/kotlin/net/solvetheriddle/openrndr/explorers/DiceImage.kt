@@ -1,4 +1,4 @@
-package explorers
+package net.solvetheriddle.openrndr.explorers
 
 import org.openrndr.PresentationMode
 import org.openrndr.application

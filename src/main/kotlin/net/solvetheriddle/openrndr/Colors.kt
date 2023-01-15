@@ -1,9 +1,13 @@
+package net.solvetheriddle.openrndr
+
 import org.openrndr.color.ColorRGBa
+import org.openrndr.color.Linearity
 import org.openrndr.extra.color.presets.WHITE_SMOKE
 import kotlin.random.Random
 
 @Suppress("MemberVisibilityCanBePrivate", "unused")
 object Colors {
+    val BG_GREY = ColorRGBa.fromHex("262626")
     val GREY1 = ColorRGBa(0.1, 0.1, 0.1)
     val GREY5 = ColorRGBa(0.5, 0.5, 0.5)
     val GREY9 = ColorRGBa(0.9, 0.9, 0.9)
@@ -142,7 +146,8 @@ object Colors {
             return ColorRGBa(
                 Random.nextDouble(0.20, 0.8),
                 Random.nextDouble(0.20, 0.8),
-                Random.nextDouble(0.20, 0.8)
+                Random.nextDouble(0.20, 0.8),
+                linearity = Linearity.SRGB
             )
         }
 }

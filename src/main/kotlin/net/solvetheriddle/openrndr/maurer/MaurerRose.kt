@@ -1,6 +1,6 @@
 @file:Suppress("unused")
 
-package maurer
+package net.solvetheriddle.openrndr.maurer
 
 import org.openrndr.Program
 import org.openrndr.animatable.Animatable
@@ -8,7 +8,6 @@ import org.openrndr.animatable.easing.Easing
 import org.openrndr.application
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.*
-import org.openrndr.extensions.Screenshots
 import org.openrndr.extra.fx.color.LumaOpacity
 import org.openrndr.ffmpeg.ScreenRecorder
 import org.openrndr.math.Vector2
@@ -22,7 +21,7 @@ import org.openrndr.shape.contour
 import kotlin.math.*
 
 // config Manual or Pre-defined
-//private val maurer.aConfig = maurer.AnimationConfig(0.5, 1.0, 2.0, 10_000, Easing.SineInOut)
+//private val net.solvetheriddle.openrndr.aConfig = net.solvetheriddle.openrndr.AnimationConfig(0.5, 1.0, 2.0, 10_000, Easing.SineInOut)
 private val aConfig = AnimationConfig.A6
 
 //private const val screenWidth = 896
@@ -30,8 +29,8 @@ private val aConfig = AnimationConfig.A6
 private const val screenWidth = 1163
 private const val screenHeight = 900
 
-//private const val maurer.screenWidth = 1748
-//private const val maurer.screenHeight = 1240
+//private const val net.solvetheriddle.openrndr.screenWidth = 1748
+//private const val net.solvetheriddle.openrndr.screenHeight = 1240
 //private const val radius = screenHeight / 2 * 0.95
 private const val radius = 896 / 2 * 0.95
 private val initialN = aConfig.n1
@@ -50,17 +49,17 @@ fun main() {
         }
         program {
 //            extend(Screenshots()) {
-//                name = "screenshots/maurer_rose_${maurer.aConfig.serial}.png"
+//                name = "screenshots/maurer_rose_${net.solvetheriddle.openrndr.aConfig.serial}.png"
 //            }
             extend(ScreenRecorder()) {
-                name = "maurer_rose_vid_${maurer.aConfig.serial}"
+                name = "maurer_rose_vid_${aConfig.serial}"
             }
 
-//            maurer.addUi()
-//            maurer.enableKeyboardControls()
+//            net.solvetheriddle.openrndr.addUi()
+//            net.solvetheriddle.openrndr.enableKeyboardControls()
 
-            val image = maurer.BackgroundImage("data/images/otis_picture-background.png")
-            draw(maurer.rose, image)
+            val image = BackgroundImage("data/images/otis_picture-background.png")
+            draw(rose, image)
 //            draw(rose)
 
             enableRoseAnimation()
@@ -76,7 +75,7 @@ class BackgroundImage(imagePath: String) {
 
 private fun Program.enableRoseAnimation() {
     // config animation on key or at certain point of animation (frame)
-//    maurer.animateOnKey("space") {
+//    net.solvetheriddle.openrndr.animateOnKey("space") {
     extend {
         if (frameCount == 250) {
             val animationDuration = aConfig.animationDuration
@@ -130,7 +129,7 @@ private class MaurerRose() : Animatable() {
         val c = contour {
             val firstPoint = getPointForAngle(0)
             moveTo(firstPoint)
-            // config reveal maurer.rose gradually
+            // config reveal net.solvetheriddle.openrndr.rose gradually
             val numOfConnectedPoints = 360
 //            val numOfConnectedPoints = frameCount.coerceAtMost(360)
             for (angle in 0..numOfConnectedPoints) {
@@ -150,7 +149,7 @@ private class MaurerRose() : Animatable() {
             }
         }
         drawer.fill = null
-        // config fade out maurer.rose
+        // config fade out net.solvetheriddle.openrndr.rose
         drawer.stroke = ColorRGBa.WHITE.opacify(0.9)
 //        drawer.stroke = ColorRGBa.WHITE.opacify(1 - seconds/5)
         drawer.contour(c)
@@ -186,7 +185,7 @@ private fun Program.addUi() {
                     rose.d = it.newValue
                 }
             }
-            // TODO add checkbox for maurer.curvesEnabled
+            // TODO add checkbox for net.solvetheriddle.openrndr.curvesEnabled
         }
     }
 }

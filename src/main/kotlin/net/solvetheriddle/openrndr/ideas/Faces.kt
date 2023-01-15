@@ -1,4 +1,4 @@
-package ideas
+package net.solvetheriddle.openrndr.ideas
 
 import org.openrndr.Program
 import org.openrndr.animatable.Animatable
