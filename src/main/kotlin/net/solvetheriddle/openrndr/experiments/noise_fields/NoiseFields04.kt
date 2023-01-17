@@ -26,16 +26,16 @@ private class NoiseFields04 {
             extend {
 
                 drawer.stroke = ColorRGBa.MEDIUM_VIOLET_RED
-                drawer.strokeWeight = 1.0
+                drawer.strokeWeight = 2.0
 //                drawer.fill = ColorRGBa.PINK
                 val cellSize = 40.0
-                val maxLength = 100.0
+                val maxLength = 80.0
 
                 val lines = drawer.bounds.grid(cellSize, cellSize).flatten().map {
                     val noiseVector = (it.center * 0.001).vector3(z = seconds / 4)
                     val direction = Random.simplex(noiseVector)
                     val noiseOffset = Vector3(1000.0, 1000.0, 0.0)
-                    val length = Random.simplex(noiseVector + noiseOffset) * maxLength
+                    val length = (getLengthNoise(noiseVector, noiseOffset)) * maxLength
                     val end = it.center + Polar(direction * 180.0).cartesian * length
 //                    val end = mouseControl(it, length)
                     LineSegment(it.center, end)
@@ -43,6 +43,11 @@ private class NoiseFields04 {
                 drawer.lineSegments(lines)
             }
         }
+    }
+
+    private fun getLengthNoise(noiseVector: Vector3, noiseOffset: Vector3): Double {
+        val length = Random.simplex(noiseVector + noiseOffset) + 0.5
+        return if (length < 0.0) 0.0 else length
     }
 
     private fun Program.mouseControl(
