@@ -18,9 +18,9 @@ class NoiseFields02 {
     // config
     private val bgColor = Colors.BG_GREY
     private val colorChangePeriod = 5.0
-    private val zoom = 0.05 // 0.05 .. 0.0005
-    private val speed = 1 // 1..10..100
-    private val changeColors = false
+    private val zoom = 0.0005 // 0.05 .. 0.0005
+    private val speed = 100 // 1..10..100
+    private val changeColors = true
 
     fun main() = application {
         configure {
