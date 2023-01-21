@@ -6,52 +6,65 @@ import net.solvetheriddle.openrndr.sketchSize
 import org.openrndr.Program
 import org.openrndr.application
 import org.openrndr.color.ColorRGBa
+import org.openrndr.draw.DrawQuality
+import org.openrndr.draw.LineCap
 import org.openrndr.extra.color.presets.MEDIUM_VIOLET_RED
+import org.openrndr.extra.color.presets.MIDNIGHT_BLUE
 import org.openrndr.extra.noise.Random
+import org.openrndr.extra.noise.billow
 import org.openrndr.extra.shapes.grid
 import org.openrndr.math.Polar
 import org.openrndr.math.Vector2
 import org.openrndr.math.Vector3
-import org.openrndr.shape.LineSegment
 import org.openrndr.shape.Rectangle
 
 fun main() = NoiseFields04().main()
 private class NoiseFields04 {
+
+    val lengthNoiseOffset = Vector3(1000.0, 1000.0, 0.0)
+
     fun main() = application {
         configure {
             sketchSize(Display.LG_ULTRAWIDE)
         }
         program {
             backgroundColor = Colors.GREY1
+            val cellSize = 30.0
+            val maxLength = 80.0
+            val maxWeight = 5.0
+            val speed = .1
+            val structure = 0.0005
+            val positions = drawer.bounds.grid(cellSize, cellSize).flatten()
+            val weights = MutableList(positions.size * 2) { 6.0 }
+            val lineColors = List(100) { ColorRGBa.MEDIUM_VIOLET_RED.opacify(0.5) }
 
             extend {
 
-                drawer.stroke = ColorRGBa.MEDIUM_VIOLET_RED
-                drawer.strokeWeight = 2.0
-                val cellSize = 40.0
-                val maxLength = 80.0
+                drawer.drawStyle.quality = DrawQuality.QUALITY
 
-                val lines = drawer.bounds.grid(cellSize, cellSize).flatten().flatMap {
-                    val noiseVector = (it.center * 0.001).vector3(z = seconds / 4)
-                    val direction = Random.simplex(noiseVector)
-                    val noiseOffset = Vector3(1000.0, 1000.0, 0.0)
-                    val length = (getLengthNoise(noiseVector, noiseOffset)) * maxLength
-                    val start = it.center
-                    val end = start + Polar(direction * 180.0).cartesian * length
-                    listOf(start.vector3(z = 0.0), end.vector3(z = 0.0))
-//                    mouseControl(it, length)
-                }
-                val lineColors = List(lines.size) {
-                    ColorRGBa.PINK
-                }
-                drawer.lineSegments(lines, weights = emptyList(), colors = lineColors)
+                val lines = positions
+                    .flatMapIndexed { index: Int, it: Rectangle ->
+                        val start = it.center
+                        val noiseVector = (start * structure).vector3(z = seconds * speed)
+                        weights[index * 2] = getWeight(noiseVector, maxWeight)
+                        val length = getLength(noiseVector, maxLength)
+                        val theta = Random.simplex(noiseVector) * 180.0
+                        val end = start + Polar(theta).cartesian * length
+                        listOf(start.vector3(z = 0.0), end.vector3(z = 0.0))
+                    }
+                drawer.lineSegments(lines, weights, lineColors)
             }
         }
     }
 
-    private fun getLengthNoise(noiseVector: Vector3, noiseOffset: Vector3): Double {
-        val length = Random.simplex(noiseVector + noiseOffset) + 0.5
-        return if (length < 0.0) 0.0 else length
+    private fun getLength(noiseVector: Vector3, maxLength: Double): Double {
+        val lengthNoise = Random.simplex(noiseVector + lengthNoiseOffset) + 0.5
+        return if (lengthNoise < 0.0) 0.0 else lengthNoise * maxLength
+    }
+
+    private fun getWeight(noiseVector: Vector3, maxWeight: Double): Double {
+        val lengthNoise = Random.simplex(noiseVector + lengthNoiseOffset) + 0.5
+        return if (lengthNoise < 0.0) 0.0 else lengthNoise * maxWeight
     }
 
     private fun Program.mouseControl(
