@@ -1,4 +1,4 @@
-package net.solvetheriddle.openrndr.experiments.noise_fields
+package net.solvetheriddle.openrndr.practice.noise_fields
 
 import net.solvetheriddle.openrndr.Colors
 import net.solvetheriddle.openrndr.Display
@@ -7,11 +7,8 @@ import org.openrndr.Program
 import org.openrndr.application
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.DrawQuality
-import org.openrndr.draw.LineCap
 import org.openrndr.extra.color.presets.MEDIUM_VIOLET_RED
-import org.openrndr.extra.color.presets.MIDNIGHT_BLUE
 import org.openrndr.extra.noise.Random
-import org.openrndr.extra.noise.billow
 import org.openrndr.extra.shapes.grid
 import org.openrndr.math.Polar
 import org.openrndr.math.Vector2

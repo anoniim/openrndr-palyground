@@ -1,4 +1,4 @@
-package net.solvetheriddle.openrndr.experiments.noise_fields
+package net.solvetheriddle.openrndr.practice.noise_fields
 
 import net.solvetheriddle.openrndr.Colors
 import net.solvetheriddle.openrndr.Display
