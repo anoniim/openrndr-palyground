@@ -21,6 +21,7 @@ interface SketchSizeConfig
 
 enum class Display(val width: Int, val height: Int, val xPosition: Int): SketchSizeConfig {
     LG_ULTRAWIDE(2560, 1550, 1280),
+    LG_ULTRAWIDE_LEFT(2560, 1550, 0),
     MACBOOK_AIR(1500, 997, 500),
     ;
     object FULLSCREEN: SketchSizeConfig
