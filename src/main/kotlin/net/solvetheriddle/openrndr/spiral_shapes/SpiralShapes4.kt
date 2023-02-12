@@ -1,6 +1,8 @@
 package net.solvetheriddle.openrndr.spiral_shapes
 
 import net.solvetheriddle.openrndr.Display
+import net.solvetheriddle.openrndr.tools.Move
+import net.solvetheriddle.openrndr.tools.Movie
 import org.openrndr.application
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.Drawer
@@ -10,7 +12,6 @@ import org.openrndr.extra.videoprofiles.ProresProfile
 import org.openrndr.ffmpeg.ScreenRecorder
 import org.openrndr.math.IntVector2
 import org.openrndr.math.Vector2
-import org.openrndr.shape.Segment
 import org.openrndr.shape.ShapeContour
 
 fun main() = application {
@@ -28,51 +29,77 @@ fun main() = application {
 
         val dimension = 500.0
 
-        val topDownTemplate = ShapeContour(listOf(Segment(Vector2(0.0, -dimension), Vector2(0.0, 0.0))), false)
-        val bottomUpTemplate = ShapeContour(listOf(Segment(Vector2(0.0, dimension), Vector2(0.0, 0.0))), false)
-        val leftRightTemplate = ShapeContour(listOf(Segment(Vector2(-dimension, 0.0), Vector2(0.0, 0.0))), false)
-        val rightLeftTemplate = ShapeContour(listOf(Segment(Vector2(dimension, 0.0), Vector2(0.0, 0.0))), false)
-        val shapes = listOf(
+        val topDownTemplate = listOf(Vector2(0.0, -dimension), Vector2(0.0, 0.0))
+        val bottomUpTemplate = listOf(Vector2(0.0, dimension), Vector2(0.0, 0.0))
+        val leftRightTemplate = listOf(Vector2(-dimension, 0.0), Vector2(0.0, 0.0))
+        val rightLeftTemplate = listOf(Vector2(dimension, 0.0), Vector2(0.0, 0.0))
+        val centralShapes = listOf(
+            SpiralShape(
+                listOf(Vector2(0.0, 0.0)),
+                startRadius = 0.0,
+                endRadius = dimension,
+                animationFrames = (60 * 2.0).toInt(),
+            )
+        )
+        val verticalShapes = listOf(
             SpiralShape(
                 topDownTemplate,
                 startRadius = 0.0,
                 endRadius = dimension,
-                spiralLengthOffset = 270.0,
+                spiralEnd = 270.0,
+                animationFrames = (60 * 2.0).toInt(),
             ),
             SpiralShape(
                 bottomUpTemplate,
                 startRadius = 0.0,
                 endRadius = dimension,
-                spiralLengthOffset = 90.0,
+                spiralEnd = 90.0,
+                animationFrames = (60 * 2.0).toInt(),
+            ))
+        val horizontalShapes = listOf(
+            SpiralShape(
+                leftRightTemplate,
+                startRadius = 0.0,
+                endRadius = dimension,
+                spiralEnd = 180.0,
+                animationFrames = (60 * 2.0).toInt(),
             ),
-//            SpiralShape(
-//                leftRightTemplate,
-//                startRadius = 0.0,
-//                endRadius = dimension,
-//                spiralLengthOffset = 180.0,
-//            ),
-//            SpiralShape(
-//                rightLeftTemplate,
-//                startRadius = 0.0,
-//                endRadius = dimension,
-//                spiralLengthOffset = 0.0,
-//            ),
+            SpiralShape(
+                rightLeftTemplate,
+                startRadius = 0.0,
+                endRadius = dimension,
+                spiralEnd = 0.0,
+                animationFrames = (60 * 2.0).toInt(),
+            ),
         )
 
-        shapes.forEach { it.build() }
+        val movie = Movie(
+            loop = true,
+            moves = listOf(
+                SpiralShapeMove(
+                    fromFrame = 0,
+                    lengthFrames = (60 * 2.0).toInt(),
+                    centralShapes,
+                ),
+                SpiralShapeMove(
+                    fromFrame = 0,
+                    lengthFrames = (60 * 2.0).toInt(),
+                    verticalShapes,
+                ),
+                SpiralShapeMove(
+                    fromFrame = (60 * 2.0).toInt(),
+                    lengthFrames = (60 * 2.0).toInt(),
+                    horizontalShapes
+                ),
+            )
+        )
 
         extend {
             drawer.clear(ColorRGBa.BLACK)
             drawer.translate(drawer.bounds.center)
 //            drawer.scale(0.5, 1.0)
 
-            shapes.forEach {
-                // config
-//                drawer.drawTemplateShape(it.templateContour)
-
-                it.update(frameCount)
-                drawer.drawShape(it.contour)
-            }
+            movie.play(frameCount)
         }
 
         if (recording) {
@@ -83,6 +110,18 @@ fun main() = application {
         }
     }
 }
+
+internal class SpiralShapeMove(
+    fromFrame: Int, lengthFrames: Int,
+    private val shapes: List<SpiralShape>
+) : Move(fromFrame, lengthFrames,
+    { frameCount ->
+        shapes.forEach {
+//            drawer.drawTemplateShape(it.templateContour) // config
+            it.update(frameCount)
+            drawer.drawShape(it.contour)
+        }
+    })
 
 private fun Drawer.drawTemplateShape(centerShape: ShapeContour) {
     strokeWeight = 3.0
