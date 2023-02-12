@@ -19,7 +19,7 @@ import kotlin.math.*
 fun main() = application {
 
     // config recording
-    val recording = true
+    val recording = false
 
     configure {
         if (recording) {
