@@ -1,8 +1,5 @@
-package net.solvetheriddle.openrndr.practice
+package net.solvetheriddle.openrndr.spiral_shapes
 
-import net.solvetheriddle.openrndr.Colors
-import net.solvetheriddle.openrndr.Display
-import net.solvetheriddle.openrndr.sketchSize
 import org.openrndr.application
 import org.openrndr.color.ColorRGBa
 import org.openrndr.extra.color.presets.*
@@ -10,7 +7,6 @@ import org.openrndr.extra.videoprofiles.ProresProfile
 import org.openrndr.ffmpeg.ScreenRecorder
 import org.openrndr.math.Polar
 import org.openrndr.math.Vector2
-import org.openrndr.shape.Rectangle
 import org.openrndr.shape.Segment
 import org.openrndr.shape.ShapeContour
 import org.openrndr.shape.contour
