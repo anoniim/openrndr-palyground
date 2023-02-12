@@ -7,7 +7,7 @@ internal class Movie(
     private val moves: List<Move>
 ) {
 
-    private val length = moves.sumOf { it.lengthFrames }
+    private val length = moves.maxOf { it.fromFrame + it.lengthFrames }
 
     context(Program)
     fun play(frameCount: Int) {
@@ -18,7 +18,7 @@ internal class Movie(
 }
 
 internal open class Move(
-    private val fromFrame: Int,
+    internal val fromFrame: Int,
     val lengthFrames: Int,
     val moveFunction: Program.(Int) -> Unit
 ) {
