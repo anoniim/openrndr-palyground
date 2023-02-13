@@ -38,7 +38,7 @@ fun main() = application {
                 listOf(Vector2(0.0, 0.0)),
                 startRadius = 0.0,
                 endRadius = dimension,
-                animationFrames = (60 * 2.0).toInt(),
+                animationFrames = (60 * 6.0).toInt(),
             )
         )
         val verticalShapes = listOf(
@@ -55,7 +55,8 @@ fun main() = application {
                 endRadius = dimension,
                 spiralEnd = 90.0,
                 animationFrames = (60 * 2.0).toInt(),
-            ))
+            )
+        )
         val horizontalShapes = listOf(
             SpiralShape(
                 leftRightTemplate,
@@ -73,25 +74,24 @@ fun main() = application {
             ),
         )
 
-        val movie = Movie(
-            loop = true,
-            moves = listOf(
-                SpiralShapeMove(
-                    fromFrame = 0,
-                    lengthFrames = (60 * 2.0).toInt(),
-                    centralShapes,
-                ),
-                SpiralShapeMove(
-                    fromFrame = 0,
-                    lengthFrames = (60 * 2.0).toInt(),
-                    verticalShapes,
-                ),
-                SpiralShapeMove(
-                    fromFrame = (60 * 2.0).toInt(),
-                    lengthFrames = (60 * 2.0).toInt(),
-                    horizontalShapes
-                ),
-            )
+        val movie = Movie(loop = true)
+        movie.add(
+            SpiralShapeMove(
+                lengthFrames = centralShapes[0].animationFrames,
+                centralShapes,
+            ),
+        )
+        movie.append(
+            SpiralShapeMove(
+                lengthFrames = (60 * 2.0).toInt(),
+                verticalShapes
+            ),
+        )
+        movie.append(
+            SpiralShapeMove(
+                lengthFrames = (60 * 2.0).toInt(),
+                horizontalShapes
+            ),
         )
 
         extend {
@@ -99,7 +99,7 @@ fun main() = application {
             drawer.translate(drawer.bounds.center)
 //            drawer.scale(0.5, 1.0)
 
-            movie.play(frameCount)
+            movie.play()
         }
 
         if (recording) {
@@ -112,9 +112,9 @@ fun main() = application {
 }
 
 internal class SpiralShapeMove(
-    fromFrame: Int, lengthFrames: Int,
+    lengthFrames: Int,
     private val shapes: List<SpiralShape>
-) : Move(fromFrame, lengthFrames,
+) : Move(lengthFrames,
     { frameCount ->
         shapes.forEach {
 //            drawer.drawTemplateShape(it.templateContour) // config
