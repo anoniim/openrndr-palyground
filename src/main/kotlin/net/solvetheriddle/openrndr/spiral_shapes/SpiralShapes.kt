@@ -11,16 +11,16 @@ import kotlin.math.sin
 
 internal class SpiralShape(
     templatePoints: List<Vector2>,
-    val startRadius: Double,
-    val endRadius: Double,
+    private val startRadius: Double,
+    private val endRadius: Double,
+    private val spiralDensity: Int = 50, // 10..50
     /** Polar angle of the end of the spiral */
-    val spiralEnd: Double = 0.0,
+    private val spiralEnd: Double = 0.0,
     animationMode: AnimationMode = AnimationMode.REVEAL_BOUNCE,
     /** Length of the animation in frames (60 fps * seconds rounded) */
-    val animationFrames: Int = (60 * 10.0).toInt(),
+    val animationLength: Int = (60 * 10.0).toInt(),
 ) {
 
-    private val spiralDensity = 50 // 10..50
     private val templateResolution = 3000
 
     private val templateResampled = if (templatePoints.size > 1) {
@@ -28,6 +28,7 @@ internal class SpiralShape(
     } else List(templateResolution) { templatePoints[0] }
     private val shapePoints = mutableListOf<Vector2>()
     private val animationFunction = when (animationMode) {
+        AnimationMode.STATIC -> NoAnimationFunction()
         AnimationMode.REVEAL -> RevealAnimationFunction()
         AnimationMode.REVEAL_BOUNCE -> RevealBounceAnimationFunction()
         AnimationMode.REVEAL_HIDE -> RevealHideAnimationFunction()
@@ -48,11 +49,11 @@ internal class SpiralShape(
     private var shapeProgress = Pair(0, 0)
 
     /**
-     * Expects [frameCount] in range 0..[animationFrames]
+     * Expects [frameCount] in range 0..[animationLength]
      */
     fun update(frameCount: Int) {
-        val currentFrameCount = (frameCount) % animationFrames
-        shapeProgress = animationFunction.updateShapeProgress(shapeProgress, currentFrameCount, shapePoints.lastIndex, animationFrames)
+        val currentFrameCount = (frameCount) % animationLength
+        shapeProgress = animationFunction.updateShapeProgress(shapeProgress, currentFrameCount, shapePoints.lastIndex, animationLength)
     }
 
     val contour: ShapeContour
@@ -80,6 +81,7 @@ internal class SpiralShape(
 }
 
 internal enum class AnimationMode {
+    STATIC,
     REVEAL,
     REVEAL_BOUNCE,
     REVEAL_HIDE,
@@ -87,6 +89,17 @@ internal enum class AnimationMode {
 
 internal interface AnimationFunction {
     fun updateShapeProgress(shapeProgress: Pair<Int, Int>, currentFrameCount: Int, lastIndex: Int, animationFrames: Int): Pair<Int, Int>
+}
+
+internal class NoAnimationFunction : AnimationFunction {
+    override fun updateShapeProgress(
+        shapeProgress: Pair<Int, Int>,
+        currentFrameCount: Int,
+        lastIndex: Int,
+        animationFrames: Int
+    ): Pair<Int, Int> {
+        return shapeProgress.copy(second = lastIndex)
+    }
 }
 
 internal class RevealAnimationFunction : AnimationFunction {

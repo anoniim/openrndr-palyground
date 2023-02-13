@@ -33,13 +33,48 @@ fun main() = application {
         val bottomUpTemplate = listOf(Vector2(0.0, dimension), Vector2(0.0, 0.0))
         val leftRightTemplate = listOf(Vector2(-dimension, 0.0), Vector2(0.0, 0.0))
         val rightLeftTemplate = listOf(Vector2(dimension, 0.0), Vector2(0.0, 0.0))
-        val centralShapes = listOf(
-            SpiralShape(
-                listOf(Vector2(0.0, 0.0)),
-                startRadius = 0.0,
-                endRadius = dimension,
-                animationFrames = (60 * 6.0).toInt(),
-            )
+        val centralShape1 = SpiralShape(
+            listOf(Vector2(0.0, 0.0)),
+            startRadius = 0.0,
+            endRadius = dimension / 4,
+            spiralDensity = 5,
+            animationLength = (60 * 3.0).toInt(),
+        )
+        val centralShape2 = SpiralShape(
+            listOf(Vector2(0.0, 0.0)),
+            startRadius = 0.0,
+            endRadius = dimension / 2,
+            spiralDensity = 10,
+            animationLength = (60 * 6.0).toInt(),
+        )
+        val centralShape3 = SpiralShape(
+            listOf(Vector2(0.0, 0.0)),
+            startRadius = 0.0,
+            endRadius = dimension,
+            spiralDensity = 20,
+            animationLength = (60 * 12.0).toInt(),
+        )
+        val bottomShape = SpiralShape(
+            bottomUpTemplate,
+            startRadius = 0.0,
+            endRadius = dimension,
+            spiralDensity = 20,
+            spiralEnd = 90.0,
+            animationLength = (60 * 8.0).toInt(),
+        )
+        val bottomShapeFaster = SpiralShape(
+            bottomUpTemplate,
+            startRadius = 0.0,
+            endRadius = dimension,
+            spiralDensity = 20,
+            animationLength = (60 * 4.0).toInt(),
+        )
+        val bottomShapeSpinning = SpiralShape(
+            bottomUpTemplate,
+            startRadius = 0.0,
+            endRadius = dimension,
+            spiralDensity = 20,
+            animationLength = (60 * 4.0).toInt(),
         )
         val verticalShapes = listOf(
             SpiralShape(
@@ -47,14 +82,14 @@ fun main() = application {
                 startRadius = 0.0,
                 endRadius = dimension,
                 spiralEnd = 270.0,
-                animationFrames = (60 * 2.0).toInt(),
+                animationLength = (60 * 2.0).toInt(),
             ),
             SpiralShape(
                 bottomUpTemplate,
                 startRadius = 0.0,
                 endRadius = dimension,
                 spiralEnd = 90.0,
-                animationFrames = (60 * 2.0).toInt(),
+                animationLength = (60 * 2.0).toInt(),
             )
         )
         val horizontalShapes = listOf(
@@ -63,36 +98,58 @@ fun main() = application {
                 startRadius = 0.0,
                 endRadius = dimension,
                 spiralEnd = 180.0,
-                animationFrames = (60 * 2.0).toInt(),
+                animationLength = (60 * 2.0).toInt(),
             ),
             SpiralShape(
                 rightLeftTemplate,
                 startRadius = 0.0,
                 endRadius = dimension,
                 spiralEnd = 0.0,
-                animationFrames = (60 * 2.0).toInt(),
+                animationLength = (60 * 2.0).toInt(),
+            ),
+        )
+        val allShapes = listOf(
+            SpiralShape(
+                topDownTemplate,
+                startRadius = 0.0,
+                endRadius = dimension,
+                spiralEnd = 270.0,
+                animationLength = (60 * 2.0).toInt(),
+            ),
+            SpiralShape(
+                bottomUpTemplate,
+                startRadius = 0.0,
+                endRadius = dimension,
+                spiralEnd = 90.0,
+                animationLength = (60 * 2.0).toInt(),
+            ),
+            SpiralShape(
+                leftRightTemplate,
+                startRadius = 0.0,
+                endRadius = dimension,
+                spiralEnd = 180.0,
+                animationLength = (60 * 2.0).toInt(),
+            ),
+            SpiralShape(
+                rightLeftTemplate,
+                startRadius = 0.0,
+                endRadius = dimension,
+                spiralEnd = 0.0,
+                animationLength = (60 * 2.0).toInt(),
             ),
         )
 
-        val movie = Movie(loop = true)
-        movie.add(
-            SpiralShapeMove(
-                lengthFrames = centralShapes[0].animationFrames,
-                centralShapes,
-            ),
-        )
-        movie.append(
-            SpiralShapeMove(
-                lengthFrames = (60 * 2.0).toInt(),
-                verticalShapes
-            ),
-        )
-        movie.append(
-            SpiralShapeMove(
-                lengthFrames = (60 * 2.0).toInt(),
-                horizontalShapes
-            ),
-        )
+        val movie = Movie(loop = true).apply {
+//            append(SpiralShapeMove(bottomShapeSpinning))
+            add(SpiralShapeMove(centralShape1))
+            append(SpiralShapeMove(centralShape2))
+            append(SpiralShapeMove(centralShape3))
+            append(SpiralShapeMove(bottomShape))
+            append(SpiralShapeMove(bottomShapeFaster))
+            append(SpiralShapeMove(verticalShapes))
+            append(SpiralShapeMove(horizontalShapes))
+            append(SpiralShapeMove(allShapes))
+        }
 
         extend {
             drawer.clear(ColorRGBa.BLACK)
@@ -112,8 +169,8 @@ fun main() = application {
 }
 
 internal class SpiralShapeMove(
-    lengthFrames: Int,
-    private val shapes: List<SpiralShape>
+    private val shapes: List<SpiralShape>,
+    lengthFrames: Int = shapes[0].animationLength,
 ) : Move(lengthFrames,
     { frameCount ->
         shapes.forEach {
@@ -121,7 +178,10 @@ internal class SpiralShapeMove(
             it.update(frameCount)
             drawer.drawShape(it.contour)
         }
-    })
+    }) {
+
+    constructor(shape: SpiralShape, lengthFrames: Int = shape.animationLength) : this(listOf(shape), lengthFrames)
+}
 
 private fun Drawer.drawTemplateShape(centerShape: ShapeContour) {
     strokeWeight = 3.0
