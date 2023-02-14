@@ -19,7 +19,7 @@ import org.openrndr.shape.ShapeContour
 fun main() = application {
 
     // config recording
-    val recording = false
+    val recording = true
 
     configure {
         width = 1080
@@ -28,6 +28,12 @@ fun main() = application {
     }
 
     program {
+        if (recording) {
+            extend(ScreenRecorder().apply {
+                frameRate = 60
+                profile = ProresProfile()
+            })
+        }
 
         val dimension = 500.0
 
@@ -35,151 +41,116 @@ fun main() = application {
         val bottomUpTemplate = listOf(Vector2(0.0, dimension), Vector2(0.0, 0.0))
         val leftRightTemplate = listOf(Vector2(-dimension, 0.0), Vector2(0.0, 0.0))
         val rightLeftTemplate = listOf(Vector2(dimension, 0.0), Vector2(0.0, 0.0))
-        val centralShape1 = SpiralShape(
+        val centralSpiral1 = SpiralShape(
             listOf(Vector2(0.0, 0.0)),
             startRadius = 0.0,
             endRadius = dimension / 4,
-            spiralDensity = 5,
-            spiralEnd = 90.0,
+            spiralEndOffset = 180.0,
+            animationMode = AnimationMode.REVEAL_HIDE,
             animationLength = (60 * 6.0).toInt(),
         )
-        val centralShape2 = SpiralShape(
+        val centralSpiral2 = SpiralShape(
             listOf(Vector2(0.0, 0.0)),
             startRadius = 0.0,
             endRadius = dimension / 2,
-            spiralDensity = 10,
+            spiralEndOffset = 278.0,
+            animationMode = AnimationMode.REVEAL_HIDE,
             animationLength = (60 * 6.0).toInt(),
         )
-        val centralShape3 = SpiralShape(
+        val ring = SpiralShape(
+            listOf(Vector2(0.0, 0.0)),
+            startRadius = dimension / 2,
+            endRadius = dimension,
+            spiralEndOffset = 95.0,
+            animationMode = AnimationMode.REVEAL_HIDE,
+            animationLength = (60 * 6.0).toInt(),
+        )
+        val centralShape4 = SpiralShape(
             listOf(Vector2(0.0, 0.0)),
             startRadius = 0.0,
             endRadius = dimension,
-            spiralDensity = 20,
-            spiralEnd = 95.0,
+            spiralEndOffset = 95.0,
             animationMode = AnimationMode.REVEAL_HIDE,
             animationLength = (60 * 12.0).toInt(),
         )
-        val bottomShape = SpiralShape(
-            bottomUpTemplate,
-            startRadius = 0.0,
-            endRadius = dimension,
-            spiralDensity = 20,
-            spiralEnd = 90.0,
-            animationMode = AnimationMode.REVEAL,
-            animationLength = (60 * 8.0).toInt(),
-        )
-        val bottomShapeFaster = SpiralShape(
-            bottomUpTemplate,
-            startRadius = 0.0,
-            endRadius = dimension,
-            spiralDensity = 20,
-            spiralEnd = 90.0,
-            animationMode = AnimationMode.REVEAL_HIDE,
-            animationLength = (60 * 4.0).toInt(),
-        )
-        val topShapeFaster = SpiralShape(
+        val topSpiralReveal = SpiralShape(
             topDownTemplate,
             startRadius = 0.0,
             endRadius = dimension,
-            spiralDensity = 20,
-            spiralEnd = 270.0,
-            animationMode = AnimationMode.REVEAL_HIDE,
-            animationLength = (60 * 4.0).toInt(),
+            spiralEndOffset = 270.0,
+            animationMode = AnimationMode.REVEAL,
+            animationLength = (60 * 6.0).toInt(),
         )
-        val bottomShapeHide = SpiralShape(
+        val bottomSpiralRevealHide = SpiralShape(
             bottomUpTemplate,
             startRadius = 0.0,
             endRadius = dimension,
-            spiralDensity = 20,
-            spiralEnd = 90.0,
+            spiralEndOffset = 90.0,
+            animationMode = AnimationMode.REVEAL_HIDE,
+            animationLength = (60 * 6.0).toInt(),
+        )
+        val topSpiralRevealHide = SpiralShape(
+            topDownTemplate,
+            startRadius = 0.0,
+            endRadius = dimension,
+            spiralEndOffset = 270.0,
+            animationMode = AnimationMode.REVEAL_HIDE,
+            animationLength = (60 * 6.0).toInt(),
+        )
+        val topSpiralHide = SpiralShape(
+            topDownTemplate,
+            startRadius = 0.0,
+            endRadius = dimension,
+            spiralEndOffset = 270.0,
             animationMode = AnimationMode.REVERSED_REVEAL,
             animationLength = (60 * 4.0).toInt(),
         )
-        val bottomShapeStatic = SpiralShape(
-            bottomUpTemplate,
+        val topShapeStatic = SpiralShape(
+            topDownTemplate,
             startRadius = 0.0,
             endRadius = dimension,
-            spiralDensity = 20,
-            spiralEnd = 90.0,
+            spiralEndOffset = 270.0,
             animationMode = AnimationMode.STATIC,
             animationLength = (60 * 2.0).toInt(),
         )
         val verticalShapes = listOf(
-            SpiralShape(
-                topDownTemplate,
-                startRadius = 0.0,
-                endRadius = dimension,
-                spiralEnd = 270.0,
-                animationLength = (60 * 2.0).toInt(),
-            ),
-            SpiralShape(
-                bottomUpTemplate,
-                startRadius = 0.0,
-                endRadius = dimension,
-                spiralEnd = 90.0,
-                animationLength = (60 * 2.0).toInt(),
-            )
+            SpiralShape(topDownTemplate, startRadius = 0.0, endRadius = dimension, spiralEndOffset = 270.0, animationLength = (60 * 2.0).toInt()),
+            SpiralShape(bottomUpTemplate, startRadius = 0.0, endRadius = dimension, spiralEndOffset = 90.0, animationLength = (60 * 2.0).toInt()),
         )
         val horizontalShapes = listOf(
-            SpiralShape(
-                leftRightTemplate,
-                startRadius = 0.0,
-                endRadius = dimension,
-                spiralEnd = 180.0,
-                animationLength = (60 * 2.0).toInt(),
-            ),
-            SpiralShape(
-                rightLeftTemplate,
-                startRadius = 0.0,
-                endRadius = dimension,
-                spiralEnd = 0.0,
-                animationLength = (60 * 2.0).toInt(),
-            ),
+            SpiralShape(leftRightTemplate, startRadius = 0.0, endRadius = dimension, spiralEndOffset = 180.0, animationLength = (60 * 2.0).toInt()),
+            SpiralShape(rightLeftTemplate, startRadius = 0.0, endRadius = dimension, spiralEndOffset = 0.0, animationLength = (60 * 2.0).toInt()),
         )
-        val allShapes = listOf(
-            SpiralShape(
-                topDownTemplate,
-                startRadius = 0.0,
-                endRadius = dimension,
-                spiralEnd = 270.0,
-                animationLength = (60 * 6.0).toInt(),
-            ),
-            SpiralShape(
-                bottomUpTemplate,
-                startRadius = 0.0,
-                endRadius = dimension,
-                spiralEnd = 90.0,
-                animationLength = (60 * 6.0).toInt(),
-            ),
-            SpiralShape(
-                leftRightTemplate,
-                startRadius = 0.0,
-                endRadius = dimension,
-                spiralEnd = 180.0,
-                animationLength = (60 * 6.0).toInt(),
-            ),
-            SpiralShape(
-                rightLeftTemplate,
-                startRadius = 0.0,
-                endRadius = dimension,
-                spiralEnd = 0.0,
-                animationLength = (60 * 8.0).toInt(),
-            ),
+        val allShapesHalf = listOf(
+            SpiralShape(topDownTemplate, startRadius = 0.0, endRadius = dimension / 2, spiralEndOffset = 270.0, animationLength = (60 * 8.0).toInt()),
+            SpiralShape(bottomUpTemplate, startRadius = 0.0, endRadius = dimension / 2, spiralEndOffset = 90.0, animationLength = (60 * 8.0).toInt()),
+            SpiralShape(leftRightTemplate, startRadius = 0.0, endRadius = dimension / 2, spiralEndOffset = 180.0, animationLength = (60 * 8.0).toInt()),
+            SpiralShape(rightLeftTemplate, startRadius = 0.0, endRadius = dimension / 2, spiralEndOffset = 0.0, animationLength = (60 * 8.0).toInt()),
+        )
+        val allShapesFull = listOf(
+            SpiralShape(topDownTemplate, startRadius = 0.0, endRadius = dimension, spiralEndOffset = 270.0, animationLength = (60 * 6.0).toInt()),
+            SpiralShape(bottomUpTemplate, startRadius = 0.0, endRadius = dimension, spiralEndOffset = 90.0, animationLength = (60 * 6.0).toInt()),
+            SpiralShape(leftRightTemplate, startRadius = 0.0, endRadius = dimension, spiralEndOffset = 180.0, animationLength = (60 * 6.0).toInt()),
+            SpiralShape(rightLeftTemplate, startRadius = 0.0, endRadius = dimension, spiralEndOffset = 0.0, animationLength = (60 * 6.0).toInt()),
         )
 
-        val movie = Movie(loop = true).apply {
-            add(SpiralShapeMove(centralShape1))
-//            append(SpiralShapeMove(centralShape2))
-            append(SpiralShapeMove(centralShape3), -20)
-            append(SpiralShapeMove(bottomShape), -70)
-            append(rotatingMove(bottomShapeStatic, 0.0, 180.0))
-            append(rotatingMove(bottomShapeStatic, 180.0, 180.0))
-            append(SpiralShapeMove(bottomShapeHide))
-            append(SpiralShapeMove(bottomShapeFaster))
-            append(SpiralShapeMove(topShapeFaster))
+        val movie = Movie(loop = false).apply {
+            add(SpiralShapeMove(centralSpiral1))
+            append(SpiralShapeMove(centralSpiral2))
+            append(SpiralShapeMove(ring), -20)
+            append(SpiralShapeMove(topSpiralRevealHide), -40)
+            append(SpiralShapeMove(bottomSpiralRevealHide), -20)
+            append(SpiralShapeMove(topSpiralReveal), -20)
+            append(rotatingMove(topShapeStatic, 0.0, 180.0))
+            append(rotatingMove(topShapeStatic, 180.0, 180.0))
+            append(rotatingMove(topShapeStatic, 0.0, -180.0))
+            append(rotatingMove(topShapeStatic, 180.0, -180.0))
             append(SpiralShapeMove(verticalShapes))
             append(SpiralShapeMove(horizontalShapes))
-            append(SpiralShapeMove(allShapes))
+            append(SpiralShapeMove(verticalShapes))
+            append(SpiralShapeMove(horizontalShapes))
+            append(SpiralShapeMove(allShapesFull))
+            append(SpiralShapeMove(allShapesHalf))
         }
 
         extend {
@@ -187,14 +158,9 @@ fun main() = application {
             drawer.translate(drawer.bounds.center)
 //            drawer.scale(0.5, 1.0)
 
-            movie.play()
-        }
-
-        if (recording) {
-            extend(ScreenRecorder().apply {
-                frameRate = 60
-                profile = ProresProfile()
-            })
+            movie.play {
+                if (recording) program.application.exit()
+            }
         }
     }
 }
