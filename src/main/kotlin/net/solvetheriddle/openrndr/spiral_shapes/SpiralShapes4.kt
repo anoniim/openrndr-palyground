@@ -55,7 +55,7 @@ fun main() = application {
             startRadius = 0.0,
             endRadius = dimension,
             spiralDensity = 20,
-            spiralEnd = 90.0,
+            spiralEnd = 95.0,
             animationMode = AnimationMode.REVEAL_HIDE,
             animationLength = (60 * 12.0).toInt(),
         )
@@ -163,15 +163,15 @@ fun main() = application {
                 startRadius = 0.0,
                 endRadius = dimension,
                 spiralEnd = 0.0,
-                animationLength = (60 * 6.0).toInt(),
+                animationLength = (60 * 8.0).toInt(),
             ),
         )
 
         val movie = Movie(loop = true).apply {
             add(SpiralShapeMove(centralShape1))
 //            append(SpiralShapeMove(centralShape2))
-            append(SpiralShapeMove(centralShape3))
-            append(SpiralShapeMove(bottomShape))
+            append(SpiralShapeMove(centralShape3), -20)
+            append(SpiralShapeMove(bottomShape), -70)
             append(rotatingMove(bottomShapeStatic, 0.0, 180.0))
             append(rotatingMove(bottomShapeStatic, 180.0, 180.0))
             append(SpiralShapeMove(bottomShapeHide))
