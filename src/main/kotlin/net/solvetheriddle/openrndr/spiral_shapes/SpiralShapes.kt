@@ -13,9 +13,9 @@ internal class SpiralShape(
     templatePoints: List<Vector2>,
     private val startRadius: Double,
     private val endRadius: Double,
-    private val spiralDensity: Int = 50, // 10..50
+    private val spiralDensity: Double = .03, // 0.1..1
     /** Polar angle of the end of the spiral */
-    private val spiralEnd: Double = 0.0,
+    private val spiralEndOffset: Double = 0.0,
     animationMode: AnimationMode = AnimationMode.REVEAL_BOUNCE,
     /** Length of the animation in frames (60 fps * seconds rounded) */
     val animationLength: Int = (60 * 10.0).toInt(),
@@ -40,10 +40,11 @@ internal class SpiralShape(
         var time = 0.0
         repeat(templateResolution) {
             time += 1.0 / templateResolution
-            val radius = startRadius + time * (endRadius - startRadius)
+            val radiusDelta = endRadius - startRadius
+            val radius = startRadius + time * radiusDelta
             val center = templateResampled[it]
             val newPoint =
-                center + Vector2.fromPolar(Polar(360 * time * spiralDensity + spiralEnd, radius))
+                center + Vector2.fromPolar(Polar(360 * time * radiusDelta * spiralDensity + spiralEndOffset, radius))
             shapePoints.add(newPoint)
         }
     }
