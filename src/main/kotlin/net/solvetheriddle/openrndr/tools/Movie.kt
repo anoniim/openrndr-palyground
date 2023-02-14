@@ -9,11 +9,6 @@ internal class Movie(
 ) {
 
     private val moves: MutableMap<Move, Int> = mutableMapOf()
-    private val totalLength
-        get() = moves.keys.maxOf {
-            val fromFrame = moves[it] ?: throw IllegalStateException()
-            fromFrame + it.lengthFrames
-        }
 
     /** Appends given [move] to the end of the movie (after the last added Move) */
     fun append(move: Move, frameOffset: Int = 0) {
@@ -30,6 +25,7 @@ internal class Movie(
     @Suppress("MemberVisibilityCanBePrivate")
     fun add(move: Move, startFrame: Int = 0) {
         moves[move] = startFrame
+        updateTotalLength()
     }
 
     context(Program)
@@ -45,6 +41,15 @@ internal class Movie(
         }
         if (movieFrameCount > totalLength) {
             onFinish()
+        }
+    }
+
+    private var totalLength = 0
+
+    private fun updateTotalLength() {
+        totalLength = moves.keys.maxOf {
+            val fromFrame = moves[it] ?: throw IllegalStateException()
+            fromFrame + it.lengthFrames
         }
     }
 }
