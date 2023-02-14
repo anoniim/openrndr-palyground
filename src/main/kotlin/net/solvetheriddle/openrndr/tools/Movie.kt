@@ -16,11 +16,11 @@ internal class Movie(
         }
 
     /** Appends given [move] to the end of the movie (after the last added Move) */
-    fun append(move: Move) {
+    fun append(move: Move, frameOffset: Int = 0) {
         val fromFrame = if (moves.isNotEmpty()) {
             val lastMove = moves.keys.last()
             val lastMoveFrom = moves[lastMove] ?: throw IllegalStateException()
-            lastMoveFrom + lastMove.lengthFrames
+            lastMoveFrom + lastMove.lengthFrames + frameOffset
         } else 0
 
         add(move, fromFrame)
