@@ -1,6 +1,6 @@
 package net.solvetheriddle.openrndr.spiral_shapes
 
-import org.openrndr.animatable.easing.SineInOut
+import org.openrndr.animatable.easing.CubicInOut
 import org.openrndr.math.Polar
 import org.openrndr.math.Vector2
 import org.openrndr.shape.Segment
@@ -32,6 +32,8 @@ internal class SpiralShape(
         AnimationMode.REVEAL -> RevealAnimationFunction()
         AnimationMode.REVEAL_BOUNCE -> RevealBounceAnimationFunction()
         AnimationMode.REVEAL_HIDE -> RevealHideAnimationFunction()
+        AnimationMode.REVERSED_REVEAL -> ReversedRevealAnimationFunction()
+        AnimationMode.HIDE -> HideAnimationFunction()
     }
 
     init {
@@ -46,7 +48,16 @@ internal class SpiralShape(
         }
     }
 
-    private var shapeProgress = Pair(0, 0)
+    private val startEmptyModes = listOf(
+        AnimationMode.REVEAL,
+        AnimationMode.REVEAL_BOUNCE,
+        AnimationMode.REVEAL_HIDE,
+    )
+    private var shapeProgress = if (animationMode in startEmptyModes) {
+        Pair(0, 0) // start empty
+    } else {
+        Pair(0, shapePoints.size) // start full
+    }
 
     /**
      * Expects [frameCount] in range 0..[animationLength]
@@ -85,6 +96,8 @@ internal enum class AnimationMode {
     REVEAL,
     REVEAL_BOUNCE,
     REVEAL_HIDE,
+    REVERSED_REVEAL,
+    HIDE,
 }
 
 internal interface AnimationFunction {
@@ -98,7 +111,7 @@ internal class NoAnimationFunction : AnimationFunction {
         lastIndex: Int,
         animationFrames: Int
     ): Pair<Int, Int> {
-        return shapeProgress.copy(second = lastIndex)
+        return shapeProgress
     }
 }
 
@@ -110,7 +123,7 @@ internal class RevealAnimationFunction : AnimationFunction {
         animationFrames: Int
     ): Pair<Int, Int> {
         val revealPointerFunction =
-            SineInOut().ease(currentFrameCount.toDouble(), 0.0, lastIndex.toDouble(), animationFrames.toDouble()).toInt()
+            CubicInOut().ease(currentFrameCount.toDouble(), 0.0, lastIndex.toDouble(), animationFrames.toDouble()).toInt()
         return shapeProgress.copy(second = revealPointerFunction)
     }
 }
@@ -135,9 +148,9 @@ internal class RevealHideAnimationFunction : AnimationFunction {
         animationFrames: Int
     ): Pair<Int, Int> {
         val revealHideEndPointerFunction =
-            SineInOut().ease(currentFrameCount.toDouble(), 0.0, (lastIndex).toDouble(), animationFrames / 2.0).toInt()
+            CubicInOut().ease(currentFrameCount.toDouble(), 0.0, (lastIndex).toDouble(), animationFrames / 2.0).toInt()
         val revealHideStartPointerFunction =
-            SineInOut().ease(currentFrameCount - animationFrames / 2.0, 0.0, (lastIndex).toDouble(), animationFrames / 2.0).toInt()
+            CubicInOut().ease(currentFrameCount - animationFrames / 2.0, 0.0, (lastIndex).toDouble(), animationFrames / 2.0).toInt()
         return if (currentFrameCount == animationFrames - 1) {
             Pair(0, 0)
         } else if (currentFrameCount < animationFrames / 2) {
@@ -145,5 +158,31 @@ internal class RevealHideAnimationFunction : AnimationFunction {
         } else {
             shapeProgress.copy(first = revealHideStartPointerFunction)
         }
+    }
+}
+
+internal class ReversedRevealAnimationFunction : AnimationFunction {
+    override fun updateShapeProgress(
+        shapeProgress: Pair<Int, Int>,
+        currentFrameCount: Int,
+        lastIndex: Int,
+        animationFrames: Int
+    ): Pair<Int, Int> {
+        val revealPointerFunction =
+            CubicInOut().ease(currentFrameCount.toDouble(), lastIndex.toDouble(), -lastIndex.toDouble(), animationFrames.toDouble()).toInt()
+        return shapeProgress.copy(second = revealPointerFunction)
+    }
+}
+
+internal class HideAnimationFunction : AnimationFunction {
+    override fun updateShapeProgress(
+        shapeProgress: Pair<Int, Int>,
+        currentFrameCount: Int,
+        lastIndex: Int,
+        animationFrames: Int
+    ): Pair<Int, Int> {
+        val revealPointerFunction =
+            CubicInOut().ease(currentFrameCount.toDouble(), 0.0, lastIndex.toDouble(), animationFrames.toDouble()).toInt()
+        return shapeProgress.copy(first = revealPointerFunction)
     }
 }
