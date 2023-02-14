@@ -33,7 +33,7 @@ internal class Movie(
     }
 
     context(Program)
-    fun play() {
+    fun play(onFinish: () -> Unit = {}) {
         val movieFrameCount = if (loop) frameCount % totalLength else frameCount
         moves.keys.forEach {
             val fromFrame = moves[it] ?: throw IllegalStateException()
@@ -42,6 +42,9 @@ internal class Movie(
                 val localFrameCount = movieFrameCount - fromFrame
                 it.execute(localFrameCount)
             }
+        }
+        if (movieFrameCount > totalLength) {
+            onFinish()
         }
     }
 }
