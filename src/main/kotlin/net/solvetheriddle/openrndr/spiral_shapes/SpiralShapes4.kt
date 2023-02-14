@@ -3,9 +3,11 @@ package net.solvetheriddle.openrndr.spiral_shapes
 import net.solvetheriddle.openrndr.Display
 import net.solvetheriddle.openrndr.tools.Move
 import net.solvetheriddle.openrndr.tools.Movie
+import org.openrndr.animatable.easing.QuadInOut
 import org.openrndr.application
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.Drawer
+import org.openrndr.draw.isolated
 import org.openrndr.extra.color.presets.DARK_ORCHID
 import org.openrndr.extra.color.presets.INDIAN_RED
 import org.openrndr.extra.videoprofiles.ProresProfile
@@ -38,7 +40,8 @@ fun main() = application {
             startRadius = 0.0,
             endRadius = dimension / 4,
             spiralDensity = 5,
-            animationLength = (60 * 3.0).toInt(),
+            spiralEnd = 90.0,
+            animationLength = (60 * 6.0).toInt(),
         )
         val centralShape2 = SpiralShape(
             listOf(Vector2(0.0, 0.0)),
@@ -52,6 +55,8 @@ fun main() = application {
             startRadius = 0.0,
             endRadius = dimension,
             spiralDensity = 20,
+            spiralEnd = 90.0,
+            animationMode = AnimationMode.REVEAL_HIDE,
             animationLength = (60 * 12.0).toInt(),
         )
         val bottomShape = SpiralShape(
@@ -60,6 +65,7 @@ fun main() = application {
             endRadius = dimension,
             spiralDensity = 20,
             spiralEnd = 90.0,
+            animationMode = AnimationMode.REVEAL,
             animationLength = (60 * 8.0).toInt(),
         )
         val bottomShapeFaster = SpiralShape(
@@ -67,14 +73,36 @@ fun main() = application {
             startRadius = 0.0,
             endRadius = dimension,
             spiralDensity = 20,
+            spiralEnd = 90.0,
+            animationMode = AnimationMode.REVEAL_HIDE,
             animationLength = (60 * 4.0).toInt(),
         )
-        val bottomShapeSpinning = SpiralShape(
+        val topShapeFaster = SpiralShape(
+            topDownTemplate,
+            startRadius = 0.0,
+            endRadius = dimension,
+            spiralDensity = 20,
+            spiralEnd = 270.0,
+            animationMode = AnimationMode.REVEAL_HIDE,
+            animationLength = (60 * 4.0).toInt(),
+        )
+        val bottomShapeHide = SpiralShape(
             bottomUpTemplate,
             startRadius = 0.0,
             endRadius = dimension,
             spiralDensity = 20,
+            spiralEnd = 90.0,
+            animationMode = AnimationMode.REVERSED_REVEAL,
             animationLength = (60 * 4.0).toInt(),
+        )
+        val bottomShapeStatic = SpiralShape(
+            bottomUpTemplate,
+            startRadius = 0.0,
+            endRadius = dimension,
+            spiralDensity = 20,
+            spiralEnd = 90.0,
+            animationMode = AnimationMode.STATIC,
+            animationLength = (60 * 2.0).toInt(),
         )
         val verticalShapes = listOf(
             SpiralShape(
@@ -114,38 +142,41 @@ fun main() = application {
                 startRadius = 0.0,
                 endRadius = dimension,
                 spiralEnd = 270.0,
-                animationLength = (60 * 2.0).toInt(),
+                animationLength = (60 * 6.0).toInt(),
             ),
             SpiralShape(
                 bottomUpTemplate,
                 startRadius = 0.0,
                 endRadius = dimension,
                 spiralEnd = 90.0,
-                animationLength = (60 * 2.0).toInt(),
+                animationLength = (60 * 6.0).toInt(),
             ),
             SpiralShape(
                 leftRightTemplate,
                 startRadius = 0.0,
                 endRadius = dimension,
                 spiralEnd = 180.0,
-                animationLength = (60 * 2.0).toInt(),
+                animationLength = (60 * 6.0).toInt(),
             ),
             SpiralShape(
                 rightLeftTemplate,
                 startRadius = 0.0,
                 endRadius = dimension,
                 spiralEnd = 0.0,
-                animationLength = (60 * 2.0).toInt(),
+                animationLength = (60 * 6.0).toInt(),
             ),
         )
 
         val movie = Movie(loop = true).apply {
-//            append(SpiralShapeMove(bottomShapeSpinning))
             add(SpiralShapeMove(centralShape1))
-            append(SpiralShapeMove(centralShape2))
+//            append(SpiralShapeMove(centralShape2))
             append(SpiralShapeMove(centralShape3))
             append(SpiralShapeMove(bottomShape))
+            append(rotatingMove(bottomShapeStatic, 0.0, 180.0))
+            append(rotatingMove(bottomShapeStatic, 180.0, 180.0))
+            append(SpiralShapeMove(bottomShapeHide))
             append(SpiralShapeMove(bottomShapeFaster))
+            append(SpiralShapeMove(topShapeFaster))
             append(SpiralShapeMove(verticalShapes))
             append(SpiralShapeMove(horizontalShapes))
             append(SpiralShapeMove(allShapes))
@@ -167,6 +198,16 @@ fun main() = application {
         }
     }
 }
+
+private fun rotatingMove(bottomShapeStatic: SpiralShape, from: Double, delta: Double) =
+    Move(bottomShapeStatic.animationLength) { frameCount ->
+        bottomShapeStatic.update(frameCount)
+        drawer.isolated {
+            val rotationInDegrees = QuadInOut().ease(frameCount.toDouble(), from, delta, bottomShapeStatic.animationLength.toDouble())
+            drawer.rotate(rotationInDegrees)
+            drawer.drawShape(bottomShapeStatic.contour)
+        }
+    }
 
 internal class SpiralShapeMove(
     private val shapes: List<SpiralShape>,
