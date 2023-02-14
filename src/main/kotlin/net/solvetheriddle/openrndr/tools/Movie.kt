@@ -27,6 +27,7 @@ internal class Movie(
     }
 
     /** Adds given [move] to the movie. The Move starts on the given [startFrame] */
+    @Suppress("MemberVisibilityCanBePrivate")
     fun add(move: Move, startFrame: Int = 0) {
         moves[move] = startFrame
     }
@@ -37,7 +38,7 @@ internal class Movie(
         moves.keys.forEach {
             val fromFrame = moves[it] ?: throw IllegalStateException()
             // Skip if it's not this move's turn
-            if (movieFrameCount > fromFrame && movieFrameCount < fromFrame + it.lengthFrames) {
+            if (movieFrameCount >= fromFrame && movieFrameCount < fromFrame + it.lengthFrames) {
                 val localFrameCount = movieFrameCount - fromFrame
                 it.execute(localFrameCount)
             }
