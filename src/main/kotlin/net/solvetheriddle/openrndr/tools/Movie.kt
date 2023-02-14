@@ -5,7 +5,7 @@ import java.lang.IllegalStateException
 
 /** Represents a collection of [Move]s that are executed at certain point (frame) within the program. */
 internal class Movie(
-    private val loop: Boolean,
+    private val loop: Boolean = true,
 ) {
 
     private val moves: MutableMap<Move, Int> = mutableMapOf()
