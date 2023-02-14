@@ -23,7 +23,7 @@ enum class Display(val width: Int, val height: Int, val xPosition: Int, val yPos
     LG_ULTRAWIDE(2560, 1550, 1280),
     LG_ULTRAWIDE_LEFT(2560, 1550, 0),
     MACBOOK_AIR(1500, 997, 500),
-    LG_SQUARE_LEFT(1080, 1080, (Display.LG_ULTRAWIDE.height - 1080) / 2, 100),
+    LG_SQUARE_LEFT(1080, 1080, 100, (Display.LG_ULTRAWIDE.height - 1080) / 2),
     ;
     object FULLSCREEN: SketchSizeConfig
 }
