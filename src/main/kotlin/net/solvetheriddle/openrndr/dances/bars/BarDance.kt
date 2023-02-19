@@ -23,20 +23,22 @@ fun main() = application {
         val attack = 0.5
         val decay = 0.020
 
-        val arms = List(numOfArms) {
-            val lineStart = Vector2(width/(numOfArms + 2.0) * (it + 2), height/4.0)
-            val lineEnd = Vector2(width/(numOfArms + 2.0) * (it + 2), 3 * height/4.0)
-            Arm(
-                lineStart, lineEnd,
-                initAlpha = 0.0,
-                tickAlpha = tickAlpha,
-                attack = attack,
-                decay = decay
-            )
-        }
-
-        val movie = Movie(loop = false).apply {
-            append(TickMove(arms, framesPerTick, tickAlpha, attack, decay))
+        val decayLength = (tickAlpha / decay).toInt().also { println("decayLength: $it") }
+        val movie = Movie(loop = true).apply {
+            append(
+                TickMove(
+                    generateBars(width, height, numOfArms, tickAlpha, attack, decay),
+                    framesPerTick,
+                    tickAlpha, attack, decay,
+                    direction = 1
+                ))
+            append(
+                TickMove(
+                    generateBars(width, height, numOfArms, tickAlpha, attack, decay),
+                    framesPerTick,
+                    tickAlpha, attack, decay,
+                    direction = -1
+                ), framesPerTick - decayLength)
         }
 
         extend {
@@ -46,45 +48,68 @@ fun main() = application {
     }
 }
 
+private fun generateBars(
+    sketchWidth: Int,
+    sketchHeight: Int,
+    numOfBars: Int,
+    tickAlpha: Double,
+    attack: Double,
+    decay: Double
+) = List(numOfBars) {
+    val lineStart = Vector2(sketchWidth / (numOfBars + 2.0) * (it + 2), sketchHeight / 4.0)
+    val lineEnd = Vector2(sketchWidth / (numOfBars + 2.0) * (it + 2), 3 * sketchHeight / 4.0)
+    Arm(
+        lineStart, lineEnd,
+        tickAlpha = tickAlpha,
+        attack = attack,
+        decay = decay
+    )
+}
+
 private class TickMove(
     val arms: List<Arm>,
     val framesPerTick: Int,
     tickAlpha: Double, attack: Double, decay: Double,
+    val direction: Int = 1,
 ): Move(calculateTickMoveLength(arms.size, framesPerTick, tickAlpha, attack, decay)) {
 
-    var tickPointer = 0
+    val initTickPointer = if (direction == 1) 0 else arms.lastIndex
+    var tickPointer = initTickPointer
 
     override fun Program.moveFunction(frameCount: Int) {
         if (frameCount % framesPerTick == 0) {
-            tickPointer++
-            if (tickPointer < arms.size) arms[tickPointer].tick()
+            tickPointer += direction
+            if (tickPointer > 0 && tickPointer < arms.size) arms[tickPointer].tick()
         }
         arms.forEach {
             it.update(frameCount)
             it.draw()
         }
     }
+
+    override fun reset() {
+        tickPointer = initTickPointer
+    }
 }
 
 private fun calculateTickMoveLength(numOfTicks: Int, framesPerTick: Int, tickAlpha: Double, attack: Double, decay: Double) : Int {
+    val appearFrames = framesPerTick * (numOfTicks - 2)
     val attackFrames = (tickAlpha / attack).toInt()
     val decayFrames = (tickAlpha / decay).toInt()
-    val appearFrames = framesPerTick * (numOfTicks - 2)
-    return appearFrames + attackFrames + decayFrames
+    return (appearFrames + attackFrames + decayFrames)
 }
 
 private class Arm(
     start: Vector2,
     end: Vector2,
     private val tickAlpha: Double = 1.0,
-    initAlpha: Double = 0.0,
     private val attack: Double = 0.5,
     private val decay: Double = 0.01,
     val strokeWeight: Double = 40.0,
 ) {
 
     private val lineSegment = LineSegment(start, end)
-    private var alpha = initAlpha
+    private var alpha = 0.0
     private var state = State.DEFAULT
 
     fun tick() {
