@@ -8,23 +8,23 @@ internal class Movie(
     private val loop: Boolean = true,
 ) {
 
-    private val moves: MutableMap<Move, MoveTime> = mutableMapOf()
+    private val moves: MutableMap<Move, Int> = mutableMapOf()
 
-    /** Appends given [move] to the end of the movie (after the last added Move) */
-    fun append(move: Move, frameOffset: Int = 0) {
+    /** Appends given [move] to the end of the movie (after the last added Move). [startOffset] is factored in when calculating start frame. */
+    fun append(move: Move, startOffset: Int = 0) {
         val startFrame = if (moves.isNotEmpty()) {
             val lastMove = moves.keys.last()
-            val lastMoveStart = moves[lastMove]?.startFrame ?: throw IllegalStateException()
-            lastMoveStart + lastMove.lengthFrames + frameOffset
+            val lastMoveStart = moves[lastMove] ?: throw IllegalStateException()
+            lastMoveStart + lastMove.lengthFrames + startOffset
         } else 0
 
-        add(move, startFrame, frameOffset)
+        add(move, startFrame)
     }
 
-    /** Adds given [move] to the movie. The Move starts on the given [startFrame] +- given [startOffset] */
+    /** Adds given [move] to the movie. The Move starts on the given [startFrame] */
     @Suppress("MemberVisibilityCanBePrivate")
-    fun add(move: Move, startFrame: Int = 0, startOffset: Int = 0) {
-        moves[move] = MoveTime(startFrame, startOffset)
+    fun add(move: Move, startFrame: Int = 0) {
+        moves[move] = startFrame
         updateTotalLength()
     }
 
@@ -51,9 +51,8 @@ internal class Movie(
 
     private fun updateTotalLength() {
         totalLength = moves.keys.maxOf {
-            val startFrame = moves[it]?.startFrame ?: throw IllegalStateException()
-            val startOffset = moves[it]?.startOffset ?: throw IllegalStateException()
-            startFrame + startOffset + it.lengthFrames
+            val startFrame = moves[it] ?: throw IllegalStateException()
+            startFrame + it.lengthFrames
         }
     }
 }
@@ -73,8 +72,3 @@ internal abstract class Move(
     /** Resets the move so that it can be executed again in looping movies. Called after the last frame of the move. */
     open fun reset() {}
 }
-
-private class MoveTime(
-    val startFrame: Int = 0,
-    val startOffset: Int = 0,
-)
