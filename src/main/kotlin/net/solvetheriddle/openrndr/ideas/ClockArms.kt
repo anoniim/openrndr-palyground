@@ -29,13 +29,15 @@ fun main() = application {
         }
 
         val movie = Movie().apply {
-            append(Move(revolutionLength) { frameCount ->
-                println(frameCount)
-                val ticksPerFrame = if (numOfArms < revolutionLength) revolutionLength / numOfArms else 1
-                if (frameCount % ticksPerFrame == 0) arms[tickPointer++ % numOfArms].show()
-                arms.forEach {
-                    it.update(frameCount)
-                    it.draw()
+            append(object: Move(revolutionLength) {
+                override fun Program.moveFunction(frameCount: Int) {
+                    println(frameCount)
+                    val ticksPerFrame = if (numOfArms < revolutionLength) revolutionLength / numOfArms else 1
+                    if (frameCount % ticksPerFrame == 0) arms[tickPointer++ % numOfArms].show()
+                    arms.forEach {
+                        it.update(frameCount)
+                        it.draw()
+                    }
                 }
             })
         }

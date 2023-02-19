@@ -54,12 +54,14 @@ internal class Movie(
     }
 }
 
-internal open class Move(
+internal abstract class Move(
     val lengthFrames: Int,
-    val moveFunction: Program.(Int) -> Unit
 ) {
+
+    abstract fun Program.moveFunction(frameCount: Int)
+
     context(Program)
     fun execute(localFrameCount: Int) {
-        moveFunction(this@Program, localFrameCount)
+        moveFunction(localFrameCount)
     }
 }

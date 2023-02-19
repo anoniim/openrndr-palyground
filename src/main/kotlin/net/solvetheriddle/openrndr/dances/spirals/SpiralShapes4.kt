@@ -3,6 +3,7 @@ package net.solvetheriddle.openrndr.dances.spirals
 import net.solvetheriddle.openrndr.Display
 import net.solvetheriddle.openrndr.tools.Move
 import net.solvetheriddle.openrndr.tools.Movie
+import org.openrndr.Program
 import org.openrndr.animatable.easing.QuadInOut
 import org.openrndr.application
 import org.openrndr.color.ColorRGBa
@@ -19,7 +20,7 @@ import org.openrndr.shape.ShapeContour
 fun main() = application {
 
     // config recording
-    val recording = true
+    val recording = false
 
     configure {
         width = 1080
@@ -166,28 +167,31 @@ fun main() = application {
 }
 
 private fun rotatingMove(bottomShapeStatic: SpiralShape, from: Double, delta: Double) =
-    Move(bottomShapeStatic.animationLength) { frameCount ->
-        bottomShapeStatic.update(frameCount)
-        drawer.isolated {
-            val rotationInDegrees = QuadInOut().ease(frameCount.toDouble(), from, delta, bottomShapeStatic.animationLength.toDouble())
-            drawer.rotate(rotationInDegrees)
-            drawer.drawShape(bottomShapeStatic.contour)
+    object: Move(bottomShapeStatic.animationLength) {
+        override fun Program.moveFunction(frameCount: Int) {
+            bottomShapeStatic.update(frameCount)
+            drawer.isolated {
+                val rotationInDegrees = QuadInOut().ease(frameCount.toDouble(), from, delta, bottomShapeStatic.animationLength.toDouble())
+                drawer.rotate(rotationInDegrees)
+                drawer.drawShape(bottomShapeStatic.contour)
+            }
         }
     }
 
 internal class SpiralShapeMove(
     private val shapes: List<SpiralShape>,
     lengthFrames: Int = shapes[0].animationLength,
-) : Move(lengthFrames,
-    { frameCount ->
+) : Move(lengthFrames) {
+
+    constructor(shape: SpiralShape, lengthFrames: Int = shape.animationLength) : this(listOf(shape), lengthFrames)
+
+    override fun Program.moveFunction(frameCount: Int) {
         shapes.forEach {
 //            drawer.drawTemplateShape(it.templateContour) // config
             it.update(frameCount)
             drawer.drawShape(it.contour)
         }
-    }) {
-
-    constructor(shape: SpiralShape, lengthFrames: Int = shape.animationLength) : this(listOf(shape), lengthFrames)
+    }
 }
 
 private fun Drawer.drawTemplateShape(centerShape: ShapeContour) {

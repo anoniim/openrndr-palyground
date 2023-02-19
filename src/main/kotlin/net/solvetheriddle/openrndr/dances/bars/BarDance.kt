@@ -13,13 +13,12 @@ import org.openrndr.shape.LineSegment
 
 fun main() = application {
     configure {
-//        sketchSize(Display.LG_SQUARE_LEFT)
-        sketchSize(Display.MACBOOK_AIR)
+        sketchSize(Display.LG_SQUARE_LEFT)
+//        sketchSize(Display.MACBOOK_AIR)
     }
     program {
         val numOfArms = 15
         val framesPerTick = 10
-        var tickPointer = 0
         val tickAlpha = 2.0
         val attack = 0.5
         val decay = 0.020
@@ -36,18 +35,8 @@ fun main() = application {
             )
         }
 
-        val movie = Movie().apply {
-            val lengthFrames = framesPerTick * (numOfArms - 1)
-            append(Move(lengthFrames) { frameCount ->
-                if (frameCount % framesPerTick == 0) {
-                    tickPointer = (tickPointer + 1) % (numOfArms - 1)
-                    arms[tickPointer].show()
-                }
-                arms.forEach {
-                    it.update(frameCount)
-                    it.draw()
-                }
-            })
+        val movie = Movie(loop = false).apply {
+            append(TickMove(arms, framesPerTick, tickAlpha, attack, decay))
         }
 
         extend {
@@ -55,7 +44,33 @@ fun main() = application {
             movie.play()
         }
     }
+}
 
+private class TickMove(
+    val arms: List<Arm>,
+    val framesPerTick: Int,
+    tickAlpha: Double, attack: Double, decay: Double,
+): Move(calculateTickMoveLength(arms.size, framesPerTick, tickAlpha, attack, decay)) {
+
+    var tickPointer = 0
+
+    override fun Program.moveFunction(frameCount: Int) {
+        if (frameCount % framesPerTick == 0) {
+            tickPointer++
+            if (tickPointer < arms.size) arms[tickPointer].tick()
+        }
+        arms.forEach {
+            it.update(frameCount)
+            it.draw()
+        }
+    }
+}
+
+private fun calculateTickMoveLength(numOfTicks: Int, framesPerTick: Int, tickAlpha: Double, attack: Double, decay: Double) : Int {
+    val attackFrames = (tickAlpha / attack).toInt()
+    val decayFrames = (tickAlpha / decay).toInt()
+    val appearFrames = framesPerTick * (numOfTicks - 2)
+    return appearFrames + attackFrames + decayFrames
 }
 
 private class Arm(
@@ -72,7 +87,7 @@ private class Arm(
     private var alpha = initAlpha
     private var state = State.DEFAULT
 
-    fun show() {
+    fun tick() {
         state = State.ATTACK
     }
 
