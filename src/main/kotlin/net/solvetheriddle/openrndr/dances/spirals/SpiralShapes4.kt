@@ -135,7 +135,7 @@ fun main() = application {
             SpiralShape(rightLeftTemplate, startRadius = 0.0, endRadius = dimension, spiralEndOffset = 0.0, animationLength = (60 * 6.0).toInt()),
         )
 
-        val movie = Movie(loop = false).apply {
+        val movie = Movie(loop = !recording).apply {
             add(SpiralShapeMove(centralSpiral1))
             append(SpiralShapeMove(centralSpiral2))
             append(SpiralShapeMove(ring), -20)
@@ -171,7 +171,7 @@ private fun rotatingMove(bottomShapeStatic: SpiralShape, from: Double, delta: Do
         override fun Program.moveFunction(frameCount: Int) {
             bottomShapeStatic.update(frameCount)
             drawer.isolated {
-                val rotationInDegrees = QuadInOut().ease(frameCount.toDouble(), from, delta, bottomShapeStatic.animationLength.toDouble())
+                val rotationInDegrees = QuadInOut().ease(frameCount.toDouble(), from, delta, (bottomShapeStatic.animationLength - 1.0))
                 drawer.rotate(rotationInDegrees)
                 drawer.drawShape(bottomShapeStatic.contour)
             }

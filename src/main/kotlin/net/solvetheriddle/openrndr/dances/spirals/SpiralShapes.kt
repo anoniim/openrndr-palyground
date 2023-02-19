@@ -57,15 +57,15 @@ internal class SpiralShape(
     private var shapeProgress = if (animationMode in startEmptyModes) {
         Pair(0, 0) // start empty
     } else {
-        Pair(0, shapePoints.size) // start full
+        Pair(0, shapePoints.lastIndex) // start full
     }
 
     /**
-     * Expects [frameCount] in range 0..[animationLength]
+     * Expects [frameCount] in range 0 until [animationLength]
      */
     fun update(frameCount: Int) {
-        val currentFrameCount = (frameCount) % animationLength
-        shapeProgress = animationFunction.updateShapeProgress(shapeProgress, currentFrameCount, shapePoints.lastIndex, animationLength)
+        val currentFrame = (frameCount) % animationLength
+        shapeProgress = animationFunction.updateShapeProgress(shapeProgress, currentFrame, shapePoints.lastIndex, animationLength - 1)
     }
 
     val contour: ShapeContour
@@ -102,15 +102,15 @@ internal enum class AnimationMode {
 }
 
 internal interface AnimationFunction {
-    fun updateShapeProgress(shapeProgress: Pair<Int, Int>, currentFrameCount: Int, lastIndex: Int, animationFrames: Int): Pair<Int, Int>
+    fun updateShapeProgress(shapeProgress: Pair<Int, Int>, currentFrame: Int, lastIndex: Int, endFrame: Int): Pair<Int, Int>
 }
 
 internal class NoAnimationFunction : AnimationFunction {
     override fun updateShapeProgress(
         shapeProgress: Pair<Int, Int>,
-        currentFrameCount: Int,
+        currentFrame: Int,
         lastIndex: Int,
-        animationFrames: Int
+        endFrame: Int
     ): Pair<Int, Int> {
         return shapeProgress
     }
@@ -119,12 +119,12 @@ internal class NoAnimationFunction : AnimationFunction {
 internal class RevealAnimationFunction : AnimationFunction {
     override fun updateShapeProgress(
         shapeProgress: Pair<Int, Int>,
-        currentFrameCount: Int,
+        currentFrame: Int,
         lastIndex: Int,
-        animationFrames: Int
+        endFrame: Int
     ): Pair<Int, Int> {
         val revealPointerFunction =
-            CubicInOut().ease(currentFrameCount.toDouble(), 0.0, lastIndex.toDouble(), animationFrames.toDouble()).toInt()
+            CubicInOut().ease(currentFrame.toDouble(), 0.0, lastIndex.toDouble(), endFrame.toDouble()).toInt()
         return shapeProgress.copy(second = revealPointerFunction)
     }
 }
@@ -132,11 +132,11 @@ internal class RevealAnimationFunction : AnimationFunction {
 internal class RevealBounceAnimationFunction : AnimationFunction {
     override fun updateShapeProgress(
         shapeProgress: Pair<Int, Int>,
-        currentFrameCount: Int,
+        currentFrame: Int,
         lastIndex: Int,
-        animationFrames: Int
+        endFrame: Int
     ): Pair<Int, Int> {
-        val revealBouncePointerFunction = (sin(currentFrameCount * PI / animationFrames) * lastIndex).toInt()
+        val revealBouncePointerFunction = (sin(currentFrame * PI / endFrame) * lastIndex).toInt()
         return shapeProgress.copy(second = revealBouncePointerFunction)
     }
 }
@@ -144,17 +144,17 @@ internal class RevealBounceAnimationFunction : AnimationFunction {
 internal class RevealHideAnimationFunction : AnimationFunction {
     override fun updateShapeProgress(
         shapeProgress: Pair<Int, Int>,
-        currentFrameCount: Int,
+        currentFrame: Int,
         lastIndex: Int,
-        animationFrames: Int
+        endFrame: Int
     ): Pair<Int, Int> {
         val revealHideEndPointerFunction =
-            CubicInOut().ease(currentFrameCount.toDouble(), 0.0, (lastIndex).toDouble(), animationFrames / 2.0).toInt()
+            CubicInOut().ease(currentFrame.toDouble(), 0.0, (lastIndex).toDouble(), endFrame / 2.0).toInt()
         val revealHideStartPointerFunction =
-            CubicInOut().ease(currentFrameCount - animationFrames / 2.0, 0.0, (lastIndex).toDouble(), animationFrames / 2.0).toInt()
-        return if (currentFrameCount == animationFrames - 1) {
+            CubicInOut().ease(currentFrame - endFrame / 2.0, 0.0, (lastIndex).toDouble(), endFrame / 2.0).toInt()
+        return if (currentFrame == endFrame) {
             Pair(0, 0)
-        } else if (currentFrameCount < animationFrames / 2) {
+        } else if (currentFrame < endFrame / 2) {
             shapeProgress.copy(second = revealHideEndPointerFunction)
         } else {
             shapeProgress.copy(first = revealHideStartPointerFunction)
@@ -165,12 +165,12 @@ internal class RevealHideAnimationFunction : AnimationFunction {
 internal class ReversedRevealAnimationFunction : AnimationFunction {
     override fun updateShapeProgress(
         shapeProgress: Pair<Int, Int>,
-        currentFrameCount: Int,
+        currentFrame: Int,
         lastIndex: Int,
-        animationFrames: Int
+        endFrame: Int
     ): Pair<Int, Int> {
         val revealPointerFunction =
-            CubicInOut().ease(currentFrameCount.toDouble(), lastIndex.toDouble(), -lastIndex.toDouble(), animationFrames.toDouble()).toInt()
+            CubicInOut().ease(currentFrame.toDouble(), lastIndex.toDouble(), -lastIndex.toDouble(), endFrame.toDouble()).toInt()
         return shapeProgress.copy(second = revealPointerFunction)
     }
 }
@@ -178,12 +178,12 @@ internal class ReversedRevealAnimationFunction : AnimationFunction {
 internal class HideAnimationFunction : AnimationFunction {
     override fun updateShapeProgress(
         shapeProgress: Pair<Int, Int>,
-        currentFrameCount: Int,
+        currentFrame: Int,
         lastIndex: Int,
-        animationFrames: Int
+        endFrame: Int
     ): Pair<Int, Int> {
         val revealPointerFunction =
-            CubicInOut().ease(currentFrameCount.toDouble(), 0.0, lastIndex.toDouble(), animationFrames.toDouble()).toInt()
+            CubicInOut().ease(currentFrame.toDouble(), 0.0, lastIndex.toDouble(), endFrame.toDouble()).toInt()
         return shapeProgress.copy(first = revealPointerFunction)
     }
 }

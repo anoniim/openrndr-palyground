@@ -32,17 +32,17 @@ internal class Movie(
     fun play(onFinish: () -> Unit = {}) {
         val movieFrameCount = if (loop) frameCount % totalLength else frameCount
         moves.keys.forEach {
-            val startFrame = moves[it] ?: throw IllegalStateException()
+            val moveStart = moves[it] ?: throw IllegalStateException()
+            val moveEnd = moveStart + it.lengthFrames - 1
             // Skip if it's not this move's turn
-            val moveLength = startFrame + it.lengthFrames
-            if (movieFrameCount in startFrame until moveLength) {
-                val localFrameCount = movieFrameCount - startFrame
+            if (movieFrameCount in moveStart .. moveEnd) {
+                val localFrameCount = movieFrameCount - moveStart
                 it.execute(localFrameCount)
             }
             // Reset after last frame of the move
-            if (movieFrameCount == moveLength - 1) it.reset()
+            if (movieFrameCount == moveEnd) it.reset()
         }
-        if (movieFrameCount > totalLength) {
+        if (movieFrameCount == totalLength) {
             onFinish()
         }
     }
