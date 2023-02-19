@@ -35,8 +35,8 @@ object Colors {
     val sunrise = listOf(
         ColorRGBa(0.98, 0.25, 0.27),
         ColorRGBa(0.95, 0.45, 0.17),
-        ColorRGBa(0.97, 0.59, 0.12),
         ColorRGBa(0.98, 0.52, 0.29),
+        ColorRGBa(0.97, 0.59, 0.12),
         ColorRGBa(0.98, 0.78, 0.31),
         ColorRGBa(0.56, 0.75, 0.43),
         ColorRGBa(0.26, 0.67, 0.55),
