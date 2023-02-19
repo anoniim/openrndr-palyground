@@ -8,23 +8,23 @@ internal class Movie(
     private val loop: Boolean = true,
 ) {
 
-    private val moves: MutableMap<Move, Int> = mutableMapOf()
+    private val moves: MutableMap<Move, MoveTime> = mutableMapOf()
 
     /** Appends given [move] to the end of the movie (after the last added Move) */
     fun append(move: Move, frameOffset: Int = 0) {
-        val fromFrame = if (moves.isNotEmpty()) {
+        val startFrame = if (moves.isNotEmpty()) {
             val lastMove = moves.keys.last()
-            val lastMoveFrom = moves[lastMove] ?: throw IllegalStateException()
-            lastMoveFrom + lastMove.lengthFrames + frameOffset
+            val lastMoveStart = moves[lastMove]?.startFrame ?: throw IllegalStateException()
+            lastMoveStart + lastMove.lengthFrames + frameOffset
         } else 0
 
-        add(move, fromFrame)
+        add(move, startFrame, frameOffset)
     }
 
-    /** Adds given [move] to the movie. The Move starts on the given [startFrame] */
+    /** Adds given [move] to the movie. The Move starts on the given [startFrame] +- given [startOffset] */
     @Suppress("MemberVisibilityCanBePrivate")
-    fun add(move: Move, startFrame: Int = 0) {
-        moves[move] = startFrame
+    fun add(move: Move, startFrame: Int = 0, startOffset: Int = 0) {
+        moves[move] = MoveTime(startFrame, startOffset)
         updateTotalLength()
     }
 
@@ -32,10 +32,10 @@ internal class Movie(
     fun play(onFinish: () -> Unit = {}) {
         val movieFrameCount = if (loop) frameCount % totalLength else frameCount
         moves.keys.forEach {
-            val fromFrame = moves[it] ?: throw IllegalStateException()
+            val startFrame = moves[it]?.startFrame ?: throw IllegalStateException()
             // Skip if it's not this move's turn
-            if (movieFrameCount >= fromFrame && movieFrameCount < fromFrame + it.lengthFrames) {
-                val localFrameCount = movieFrameCount - fromFrame
+            if (movieFrameCount >= startFrame && movieFrameCount < startFrame + it.lengthFrames) {
+                val localFrameCount = movieFrameCount - startFrame
                 it.execute(localFrameCount)
             }
         }
@@ -48,8 +48,9 @@ internal class Movie(
 
     private fun updateTotalLength() {
         totalLength = moves.keys.maxOf {
-            val fromFrame = moves[it] ?: throw IllegalStateException()
-            fromFrame + it.lengthFrames
+            val startFrame = moves[it]?.startFrame ?: throw IllegalStateException()
+            val startOffset = moves[it]?.startOffset ?: throw IllegalStateException()
+            startFrame + startOffset + it.lengthFrames
         }
     }
 }
@@ -65,3 +66,8 @@ internal abstract class Move(
         moveFunction(localFrameCount)
     }
 }
+
+private class MoveTime(
+    val startFrame: Int = 0,
+    val startOffset: Int = 0,
+)
