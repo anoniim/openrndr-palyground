@@ -1,4 +1,4 @@
-package net.solvetheriddle.openrndr.spiral_shapes
+package net.solvetheriddle.openrndr.dances.spirals
 
 import org.openrndr.animatable.easing.CubicInOut
 import org.openrndr.math.Polar

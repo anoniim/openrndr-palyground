@@ -1,5 +1,6 @@
-package net.solvetheriddle.openrndr.spiral_shapes
+package net.solvetheriddle.openrndr.dances.spirals
 
+import net.solvetheriddle.openrndr.Colors
 import org.openrndr.application
 import org.openrndr.color.ColorRGBa
 import org.openrndr.extra.color.presets.*
@@ -7,10 +8,10 @@ import org.openrndr.extra.videoprofiles.ProresProfile
 import org.openrndr.ffmpeg.ScreenRecorder
 import org.openrndr.math.Polar
 import org.openrndr.math.Vector2
-import org.openrndr.shape.Segment
-import org.openrndr.shape.ShapeContour
+import org.openrndr.shape.Rectangle
 import org.openrndr.shape.contour
 import kotlin.math.*
+
 
 fun main() = application {
 
@@ -18,7 +19,7 @@ fun main() = application {
     val recording = false
 
     configure {
-        if (recording) {
+        if(recording) {
             width = 1080
             height = 1080
         } else {
@@ -32,73 +33,65 @@ fun main() = application {
 
         if (recording) {
             extend(ScreenRecorder().apply {
-                frameRate = 60
+            frameRate = 60
                 profile = ProresProfile()
             })
         }
 
         // config parameters
-        val margin = 800.0
+        val margin = 600.0
         val dimension = min(width, height) - margin
-        val radiusFactor = dimension / 2.25
+        val radiusFactor = dimension / 10.0
         val radiusSpeed = 1
-        val minRadius = dimension / 10.0
+        val minRadius = dimension / 9.0
         val centerFactor = dimension / 2.0
         val centerSpeed = 0.02
         val resolution = .01
-        val speed = 15
+        val speed = 25
         val centerShape = mutableListOf<Vector2>()
         val templatePointCount = (2 * PI * 1108).toInt()
-        val numOfCorners = 8
-        val corners = List(numOfCorners) { Vector2.fromPolar(Polar((360.0 / numOfCorners) * it, dimension)) }
-        val template = ShapeContour(corners
-            .windowed(2)
-            .map { Segment(it[0], it[1]) }
-                + Segment(corners.last(), corners.first())
-                + Segment(corners.first(), corners[4]), true)
-            .equidistantPositions(templatePointCount)
+        val template = Rectangle(-dimension/2.0, -dimension/2.0, dimension, dimension)
+            .contour.equidistantPositions(templatePointCount)
 
         var time = 0.0
         val points = mutableListOf<Vector2>()
-        repeat(templatePointCount) {
+        repeat(2 * templatePointCount) {
             time += resolution
-            val octagonPoints = templatePointCount * 0.75
-            val radius = if (it < octagonPoints) {
-                minRadius + (abs((sin(PI / (octagonPoints / 2) * it))) * radiusFactor)
+            val radius = if(it < templatePointCount) {
+                minRadius + (abs((sin(PI / (templatePointCount / 4) * it))) * 3.9 * radiusFactor)
             } else {
-                minRadius + (abs((sin(PI / (templatePointCount-octagonPoints) * it))) * 3.3 * radiusFactor)
+                minRadius + (abs((sin(PI / (templatePointCount / 4) * it))) * 2 * radiusFactor)
             }
-            val center = template[it % templatePointCount]
+            val center = template[it%templatePointCount]
             centerShape.add(center)
             val newPoint = getNewPoint(center, radius, time * 1000)
             points.add(newPoint)
         }
         time = 0.0
-        var shapeProgress = 0 // points.size
-        var isAppearing = true
+        var shapeProgress = points.size
+        var isAppearing = false
 
         extend {
-            time += .006 // config tweak to slow down when looping
-//            drawer.clear(Colors.BG_GREY)
+            time += .0074 // config tweak to slow down when looping
+            drawer.clear(Colors.BG_GREY)
             drawer.clear(ColorRGBa.BLACK)
             drawer.translate(drawer.bounds.center)
-//            drawer.scale(0.5, 1.0)
+//            drawer.scale(1.0, 0.5)
 
             // Manage point count and appearing state
             val pointsToDrawChange = 1 + (abs(sin(time)) * speed).toInt()
-            if (isAppearing) {
+            if(isAppearing) {
                 shapeProgress += pointsToDrawChange
-                if (shapeProgress >= points.size) {
+                if(shapeProgress >= points.size) {
                     shapeProgress = points.size
                     isAppearing = false
-                    time = -PI/22
+                    if (recording) program.application.exit()
                 }
             } else {
                 shapeProgress -= pointsToDrawChange
-                if (shapeProgress < 1) {
+                if(shapeProgress < 1) {
                     shapeProgress = 1
                     isAppearing = true
-                    if (recording) program.application.exit()
                 }
             }
             println(pointsToDrawChange)
@@ -126,7 +119,7 @@ fun main() = application {
 
             // Draw shape
             drawer.strokeWeight = 2.0
-            drawer.stroke = ColorRGBa.LAWN_GREEN
+            drawer.stroke = ColorRGBa.MEDIUM_ORCHID
             drawer.contour(shape)
 
 

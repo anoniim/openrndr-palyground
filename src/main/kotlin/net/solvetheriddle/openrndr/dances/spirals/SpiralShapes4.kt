@@ -1,4 +1,4 @@
-package net.solvetheriddle.openrndr.spiral_shapes
+package net.solvetheriddle.openrndr.dances.spirals
 
 import net.solvetheriddle.openrndr.Display
 import net.solvetheriddle.openrndr.tools.Move
