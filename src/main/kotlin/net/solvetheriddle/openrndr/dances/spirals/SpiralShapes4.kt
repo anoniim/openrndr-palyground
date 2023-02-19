@@ -135,13 +135,13 @@ fun main() = application {
             SpiralShape(rightLeftTemplate, startRadius = 0.0, endRadius = dimension, spiralEndOffset = 0.0, animationLength = (60 * 6.0).toInt()),
         )
 
-        val movie = Movie(loop = !recording).apply {
+        val movie = Movie(loop = false).apply {
             add(SpiralShapeMove(centralSpiral1))
             append(SpiralShapeMove(centralSpiral2))
-            append(SpiralShapeMove(ring))
-            append(SpiralShapeMove(topSpiralRevealHide))
-            append(SpiralShapeMove(bottomSpiralRevealHide))
-            append(SpiralShapeMove(topSpiralReveal))
+            append(SpiralShapeMove(ring), -20)
+            append(SpiralShapeMove(topSpiralRevealHide), -40)
+            append(SpiralShapeMove(bottomSpiralRevealHide), -20)
+            append(SpiralShapeMove(topSpiralReveal), -20)
             append(rotatingMove(topShapeStatic, 0.0, 180.0))
             append(rotatingMove(topShapeStatic, 180.0, 180.0))
             append(rotatingMove(topShapeStatic, 0.0, -180.0))
