@@ -8,8 +8,11 @@ import org.openrndr.Program
 import org.openrndr.application
 import org.openrndr.color.ColorRGBa
 import org.openrndr.extra.color.presets.DARK_GOLDEN_ROD
+import org.openrndr.extra.shapes.grid
 import org.openrndr.math.Vector2
 import org.openrndr.shape.LineSegment
+import org.openrndr.shape.Rectangle
+import kotlin.math.ceil
 
 fun main() = application {
     configure {
@@ -17,28 +20,56 @@ fun main() = application {
 //        sketchSize(Display.MACBOOK_AIR)
     }
     program {
-        val numOfArms = 15
-        val framesPerTick = 10
+        val numOfBars = 20
+        val framesPerTick = 2
         val tickAlpha = 2.0
         val attack = 0.5
-        val decay = 0.020
+        val decay = 0.06
 
-        val decayLength = (tickAlpha / decay).toInt().also { println("decayLength: $it") }
+        val decayLength = (tickAlpha / decay).toInt()
         val movie = Movie(loop = true).apply {
             append(
                 TickMove(
-                    generateBars(width, height, numOfArms, tickAlpha, attack, decay),
+                    generateBars(drawer.bounds, heightPercentage = 0.1, numOfBars, tickAlpha, attack, decay),
                     framesPerTick,
                     tickAlpha, attack, decay,
                     direction = 1
                 ))
             append(
                 TickMove(
-                    generateBars(width, height, numOfArms, tickAlpha, attack, decay),
+                    generateBars(drawer.bounds, heightPercentage = 0.2, numOfBars, tickAlpha, attack, decay),
                     framesPerTick,
                     tickAlpha, attack, decay,
                     direction = -1
-                ), framesPerTick - decayLength)
+                ), -decayLength)
+            append(
+                TickMove(
+                    generateBars(drawer.bounds, heightPercentage = 0.4, numOfBars, tickAlpha, attack, decay),
+                    framesPerTick,
+                    tickAlpha, attack, decay,
+                    direction = 1
+                ), -decayLength)
+            append(
+                TickMove(
+                    generateBars(drawer.bounds, heightPercentage = 0.6, numOfBars, tickAlpha, attack, decay),
+                    framesPerTick,
+                    tickAlpha, attack, decay,
+                    direction = -1
+                ), -decayLength)
+            append(
+                TickMove(
+                    generateBars(drawer.bounds, heightPercentage = 0.8, numOfBars, tickAlpha, attack, decay),
+                    framesPerTick,
+                    tickAlpha, attack, decay,
+                    direction = 1
+                ), -decayLength)
+            append(
+                TickMove(
+                    generateBars(drawer.bounds, heightPercentage = 1.0, numOfBars, tickAlpha, attack, decay),
+                    framesPerTick,
+                    tickAlpha, attack, decay,
+                    direction = -1
+                ), -decayLength)
         }
 
         extend {
@@ -49,16 +80,19 @@ fun main() = application {
 }
 
 private fun generateBars(
-    sketchWidth: Int,
-    sketchHeight: Int,
+    sketchBounds: Rectangle,
+    heightPercentage: Double,
     numOfBars: Int,
     tickAlpha: Double,
     attack: Double,
     decay: Double
-) = List(numOfBars) {
-    val lineStart = Vector2(sketchWidth / (numOfBars + 2.0) * (it + 2), sketchHeight / 4.0)
-    val lineEnd = Vector2(sketchWidth / (numOfBars + 2.0) * (it + 2), 3 * sketchHeight / 4.0)
-    Arm(
+) = List(numOfBars) { index ->
+    val x = sketchBounds.grid(numOfBars, 1).flatten().map { cell -> cell.center }
+    val height = sketchBounds.height * heightPercentage
+    val yCenter = sketchBounds.height / 2.0
+    val lineStart = Vector2(x[index].x, yCenter - height/2.0)
+    val lineEnd = Vector2(x[index].x, yCenter + height / 2.0)
+    Bar(
         lineStart, lineEnd,
         tickAlpha = tickAlpha,
         attack = attack,
@@ -67,21 +101,23 @@ private fun generateBars(
 }
 
 private class TickMove(
-    val arms: List<Arm>,
+    val bars: List<Bar>,
     val framesPerTick: Int,
     tickAlpha: Double, attack: Double, decay: Double,
     val direction: Int = 1,
-): Move(calculateTickMoveLength(arms.size, framesPerTick, tickAlpha, attack, decay)) {
+): Move(calculateTickMoveLength(bars.size, framesPerTick, tickAlpha, attack, decay)) {
 
-    val initTickPointer = if (direction == 1) 0 else arms.lastIndex
+    val initTickPointer = if (direction == 1) 0 else bars.lastIndex
     var tickPointer = initTickPointer
 
     override fun Program.moveFunction(frameCount: Int) {
         if (frameCount % framesPerTick == 0) {
-            tickPointer += direction
-            if (tickPointer > 0 && tickPointer < arms.size) arms[tickPointer].tick()
+            if (tickPointer in bars.indices) {
+                bars[tickPointer].tick()
+                tickPointer += direction
+            }
         }
-        arms.forEach {
+        bars.forEach {
             it.update(frameCount)
             it.draw()
         }
@@ -93,13 +129,13 @@ private class TickMove(
 }
 
 private fun calculateTickMoveLength(numOfTicks: Int, framesPerTick: Int, tickAlpha: Double, attack: Double, decay: Double) : Int {
-    val appearFrames = framesPerTick * (numOfTicks - 2)
-    val attackFrames = (tickAlpha / attack).toInt()
-    val decayFrames = (tickAlpha / decay).toInt()
+    val appearFrames = framesPerTick * numOfTicks
+    val attackFrames = ceil(tickAlpha / attack).toInt()
+    val decayFrames = ceil(tickAlpha / decay).toInt()
     return (appearFrames + attackFrames + decayFrames)
 }
 
-private class Arm(
+private class Bar(
     start: Vector2,
     end: Vector2,
     private val tickAlpha: Double = 1.0,
@@ -122,6 +158,7 @@ private class Arm(
             if (alpha >= tickAlpha) {
                 alpha = tickAlpha
                 state = State.DECAY
+                return
             }
         }
         if (state == State.DECAY && alpha > 0) alpha -= decay
