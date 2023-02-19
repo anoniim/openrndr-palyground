@@ -21,55 +21,111 @@ fun main() = application {
     }
     program {
         val numOfBars = 20
-        val framesPerTick = 2
+        val framesPerTickToFill = 2
+        val framesPerTickToBreakDown = 4
         val tickAlpha = 2.0
         val attack = 0.5
         val decay = 0.06
+        val slowDecay = decay / 5
 
         val decayLength = (tickAlpha / decay).toInt()
         val movie = Movie(loop = true).apply {
             append(
-                TickMove(
+                BarTickMove(
                     generateBars(drawer.bounds, heightPercentage = 0.1, numOfBars, tickAlpha, attack, decay),
-                    framesPerTick,
+                    framesPerTickToFill,
                     tickAlpha, attack, decay,
                     direction = 1
-                ))
+                )
+            )
             append(
-                TickMove(
+                BarTickMove(
                     generateBars(drawer.bounds, heightPercentage = 0.2, numOfBars, tickAlpha, attack, decay),
-                    framesPerTick,
+                    framesPerTickToFill,
                     tickAlpha, attack, decay,
                     direction = -1
-                ), -decayLength)
+                ), -decayLength
+            )
             append(
-                TickMove(
+                BarTickMove(
                     generateBars(drawer.bounds, heightPercentage = 0.4, numOfBars, tickAlpha, attack, decay),
-                    framesPerTick,
+                    framesPerTickToFill,
                     tickAlpha, attack, decay,
                     direction = 1
-                ), -decayLength)
+                ), -decayLength
+            )
             append(
-                TickMove(
+                BarTickMove(
                     generateBars(drawer.bounds, heightPercentage = 0.6, numOfBars, tickAlpha, attack, decay),
-                    framesPerTick,
+                    framesPerTickToFill,
                     tickAlpha, attack, decay,
                     direction = -1
-                ), -decayLength)
+                ), -decayLength
+            )
             append(
-                TickMove(
+                BarTickMove(
                     generateBars(drawer.bounds, heightPercentage = 0.8, numOfBars, tickAlpha, attack, decay),
-                    framesPerTick,
+                    framesPerTickToFill,
                     tickAlpha, attack, decay,
                     direction = 1
-                ), -decayLength)
+                ), -decayLength
+            )
             append(
-                TickMove(
+                BarTickMove(
                     generateBars(drawer.bounds, heightPercentage = 1.0, numOfBars, tickAlpha, attack, decay),
-                    framesPerTick,
+                    framesPerTickToFill,
                     tickAlpha, attack, decay,
                     direction = -1
-                ), -decayLength)
+                ), -decayLength
+            )
+            append(
+                SplitBarTickMove(
+                    generateDoubleBars(drawer.bounds, numOfSplits = 2, numOfBars, tickAlpha, attack, decay),
+                    framesPerTickToBreakDown,
+                    tickAlpha, attack, decay,
+                    direction = 1
+                ), -decayLength
+            )
+            append(
+                SplitBarTickMove(
+                    generateDoubleBars(drawer.bounds, numOfSplits = 6, numOfBars, tickAlpha, attack, decay),
+                    framesPerTickToBreakDown,
+                    tickAlpha, attack, decay,
+                    direction = -1
+                ), -decayLength
+            )
+            append(
+                SplitBarTickMove(
+                    generateDoubleBars(drawer.bounds, numOfSplits = 8, numOfBars, tickAlpha, attack, decay),
+                    framesPerTickToBreakDown,
+                    tickAlpha, attack, decay,
+                    direction = 1
+                ), -decayLength
+            )
+            append(
+                SplitBarTickMove(
+                    generateDoubleBars(drawer.bounds, numOfSplits = 16, numOfBars, tickAlpha, attack, decay),
+                    framesPerTickToBreakDown,
+                    tickAlpha, attack, decay,
+                    direction = -1
+                ), -decayLength
+            )
+            append(
+                SplitBarTickMove(
+                    generateDoubleBars(drawer.bounds, numOfSplits = 32, numOfBars, tickAlpha, attack, slowDecay),
+                    framesPerTickToBreakDown,
+                    tickAlpha, attack, slowDecay,
+                    direction = 1
+                ), -decayLength
+            )
+//            append(
+//                DoubleBarTickMove(
+//                    generateDoubleBars(drawer.bounds, numOfSplits = 62, numOfBars, tickAlpha, attack, slowDecay),
+//                    framesPerTickToBreakDown,
+//                    tickAlpha, attack, slowDecay,
+//                    direction = -1
+//                ), -decayLength
+//            )
         }
 
         extend {
@@ -87,25 +143,37 @@ private fun generateBars(
     attack: Double,
     decay: Double
 ) = List(numOfBars) { index ->
-    val x = sketchBounds.grid(numOfBars, 1).flatten().map { cell -> cell.center }
+    val x = sketchBounds.grid(numOfBars, 1).flatten().map { cell -> cell.center.x }[index]
     val height = sketchBounds.height * heightPercentage
     val yCenter = sketchBounds.height / 2.0
-    val lineStart = Vector2(x[index].x, yCenter - height/2.0)
-    val lineEnd = Vector2(x[index].x, yCenter + height / 2.0)
-    Bar(
-        lineStart, lineEnd,
-        tickAlpha = tickAlpha,
-        attack = attack,
-        decay = decay
-    )
+    val lineStart = Vector2(x, yCenter - height / 2.0)
+    val lineEnd = Vector2(x, yCenter + height / 2.0)
+    Bar(lineStart, lineEnd, tickAlpha = tickAlpha, attack = attack, decay = decay)
 }
 
-private class TickMove(
-    val bars: List<Bar>,
+private fun generateDoubleBars(
+    sketchBounds: Rectangle,
+    numOfSplits: Int,
+    numOfBars: Int,
+    tickAlpha: Double,
+    attack: Double,
+    decay: Double
+) = List(numOfBars) { index ->
+    val grid = sketchBounds.grid(numOfBars, numOfSplits, gutterY = 10.0)
+    List(numOfSplits) { splitIndex ->
+        val barRect = grid.flatten()[index + splitIndex * (numOfBars - 1) + splitIndex]
+        val lineStart = barRect.center - Vector2(0.0, barRect.height / 2.0)
+        val lineEnd = barRect.center + Vector2(0.0, barRect.height / 2.0)
+        Bar(lineStart, lineEnd, tickAlpha = tickAlpha, attack = attack, decay = decay)
+    }
+}
+
+private abstract class TickMove<T>(
+    val bars: List<T>,
     val framesPerTick: Int,
     tickAlpha: Double, attack: Double, decay: Double,
     val direction: Int = 1,
-): Move(calculateTickMoveLength(bars.size, framesPerTick, tickAlpha, attack, decay)) {
+) : Move(calculateTickMoveLength(bars.size, framesPerTick, tickAlpha, attack, decay)) {
 
     val initTickPointer = if (direction == 1) 0 else bars.lastIndex
     var tickPointer = initTickPointer
@@ -113,26 +181,77 @@ private class TickMove(
     override fun Program.moveFunction(frameCount: Int) {
         if (frameCount % framesPerTick == 0) {
             if (tickPointer in bars.indices) {
-                bars[tickPointer].tick()
+                tick(bars[tickPointer])
                 tickPointer += direction
             }
         }
-        bars.forEach {
-            it.update(frameCount)
-            it.draw()
-        }
+        updateAndDraw(frameCount, bars)
     }
+
+    abstract fun tick(items: T)
+
+    context(Program)
+    abstract fun updateAndDraw(frameCount: Int, items: List<T>)
 
     override fun reset() {
         tickPointer = initTickPointer
     }
 }
 
-private fun calculateTickMoveLength(numOfTicks: Int, framesPerTick: Int, tickAlpha: Double, attack: Double, decay: Double) : Int {
+private fun calculateTickMoveLength(numOfTicks: Int, framesPerTick: Int, tickAlpha: Double, attack: Double, decay: Double): Int {
     val appearFrames = framesPerTick * numOfTicks
     val attackFrames = ceil(tickAlpha / attack).toInt()
     val decayFrames = ceil(tickAlpha / decay).toInt()
     return (appearFrames + attackFrames + decayFrames)
+}
+
+private class BarTickMove(
+    bars: List<Bar>,
+    framesPerTick: Int,
+    tickAlpha: Double, attack: Double, decay: Double,
+    direction: Int = 1,
+) : TickMove<Bar>(bars, framesPerTick, tickAlpha, attack, decay, direction) {
+
+    override fun tick(item: Bar) {
+        item.tick()
+    }
+
+    context(Program)
+    override fun updateAndDraw(frameCount: Int, items: List<Bar>) {
+        items.forEach {
+            it.update(frameCount)
+            it.draw()
+        }
+    }
+}
+
+private class SplitBarTickMove(
+    bars: List<List<Bar>>,
+    framesPerTick: Int,
+    tickAlpha: Double, attack: Double, decay: Double,
+    direction: Int = 1,
+) : TickMove<List<Bar>>(bars, framesPerTick, tickAlpha, attack, decay, direction) {
+
+    override fun tick(item: List<Bar>) {
+        item.forEach {
+            it.tick()
+        }
+    }
+
+    context(Program)
+    override fun updateAndDraw(frameCount: Int, items: List<List<Bar>>) {
+        items.flatten().forEach {
+            it.update(frameCount)
+//            it.draw()
+        }
+        items.forEach {
+            drawer.strokeWeight = it.first().strokeWeight
+            drawer.stroke = ColorRGBa.DARK_GOLDEN_ROD.copy(alpha = it.first().alpha)
+            val lineSegments = it.map { it.lineSegment }
+            drawer.lineSegments(lineSegments)
+
+        }
+    }
 }
 
 private class Bar(
@@ -144,8 +263,8 @@ private class Bar(
     val strokeWeight: Double = 40.0,
 ) {
 
-    private val lineSegment = LineSegment(start, end)
-    private var alpha = 0.0
+    val lineSegment = LineSegment(start, end)
+    var alpha = 0.0
     private var state = State.DEFAULT
 
     fun tick() {
