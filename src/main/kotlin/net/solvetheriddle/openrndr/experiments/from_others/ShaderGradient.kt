@@ -29,33 +29,31 @@ fun main() = application {
                 """,
             fsCode = """
                     #version 330
-
-                    uniform vec2 resolution;
-                    uniform float time;
-                    uniform vec4 color1;
-                    uniform vec4 color2;
-
-                    vec4 gradient(float x, float y) {
-                        return mix(color1, color2, length(vec2(x, y)));
-                    }
-
+                    
+                    in vec3 position;
                     in vec2 vTexCoord;
+                    
+                    uniform float time;
+                    
                     out vec4 oColor;
-
+                    
                     void main() {
-                        vec2 pos = vTexCoord;
-                        float aspect = resolution.x / resolution.y;
-                        vec2 center = vec2(0.5, 0.5 / aspect);
-
-                        if (pos.x < 0.5 && pos.y < 0.5 / aspect) {
-                            oColor = gradient(pos.x, pos.y) * vec4(1.0, 0.0, 0.0, 1.0);
-                        } else if (pos.x >= 0.5 && pos.y < 0.5 / aspect) {
-                            oColor = gradient(1.0 - pos.x, pos.y) * vec4(0.0, 1.0, 0.0, 1.0);
-                        } else if (pos.x < 0.5 && pos.y >= 0.5 / aspect) {
-                            oColor = gradient(pos.x, 1.0 - pos.y) * vec4(0.0, 0.0, 1.0, 1.0);
-                        } else {
-                            oColor = gradient(1.0 - pos.x, 1.0 - pos.y) * vec4(1.0, 1.0, 0.0, 1.0);
-                        }
+                      vec2 uv = vTexCoord.xy;
+                      vec2 center = vec2(0.5, 0.5);
+                      vec2 dir = normalize(center - uv);
+                      float dist = length(center - uv) * 2.0;
+                      float wave = sin(dist * 3.0 - time * 2.0) * 0.5 + 0.5;
+                      vec3 color = vec3(0.0);
+                      if (wave < 0.25) {
+                        color = vec3(1.0, 0.0, 0.0);
+                      } else if (wave < 0.5) {
+                        color = vec3(1.0, 1.0, 0.0);
+                      } else if (wave < 0.75) {
+                        color = vec3(0.0, 1.0, 0.0);
+                      } else {
+                        color = vec3(0.0, 0.0, 1.0);
+                      }
+                      oColor = vec4(color, 1.0);
                     }
                 """,
             name = "gradient_shader"
