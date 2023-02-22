@@ -4,7 +4,7 @@ import org.openrndr.Program
 import java.lang.IllegalStateException
 
 /** Represents a collection of [Move]s that are executed at certain point (frame) within the program. */
-internal class Movie(
+class Movie(
     private val loop: Boolean = true,
 ) {
 
@@ -57,7 +57,7 @@ internal class Movie(
     }
 }
 
-internal abstract class Move(
+abstract class Move(
     val lengthFrames: Int,
 ) {
 
