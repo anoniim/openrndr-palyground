@@ -4,11 +4,14 @@ import net.solvetheriddle.openrndr.tools.Move
 import org.openrndr.Program
 import org.openrndr.color.ColorRGBa
 import org.openrndr.extra.color.presets.DARK_GOLDEN_ROD
+import org.openrndr.extra.color.presets.DARK_MAGENTA
 import org.openrndr.extra.shapes.grid
 import org.openrndr.math.Vector2
 import org.openrndr.shape.LineSegment
 import org.openrndr.shape.Rectangle
+import kotlin.math.abs
 import kotlin.math.ceil
+import kotlin.math.pow
 
 internal abstract class TickMove<T>(
     private val bars: List<T>,
@@ -82,7 +85,7 @@ private fun generateBars(
     val yCenter = sketchBounds.height / 2.0
     val lineStart = Vector2(x, yCenter - height / 2.0)
     val lineEnd = Vector2(x, yCenter + height / 2.0)
-    Bar(lineStart, lineEnd, tickAlpha = tickAlpha, attack = attack, decay = decay)
+    Bar(lineStart, lineEnd, tickAlpha = tickAlpha, attack = attack, decay = decay, color = ColorRGBa.DARK_GOLDEN_ROD)
 }
 
 internal class SplitBarTickMove(
@@ -103,13 +106,18 @@ internal class SplitBarTickMove(
     context(Program)
     override fun updateAndDraw(frameCount: Int, allItems: List<List<Bar>>) {
         allItems.forEach { column ->
-            drawer.strokeWeight = column.first().strokeWeight
-            drawer.stroke = ColorRGBa.DARK_GOLDEN_ROD.copy(alpha = column.first().alpha)
-            val lineSegments = column.map {
-                it.update(frameCount)
-                it.lineSegment
+//            drawer.strokeWeight = column.first().strokeWeight
+//            drawer.stroke = ColorRGBa.DARK_GOLDEN_ROD.copy(alpha = column.first().alpha)
+            drawer.rectangles {
+                column.forEach {
+                    it.update(frameCount)
+                    val strokeWeight = it.strokeWeight
+                    val start = it.lineSegment.start
+                    fill = it.color.copy(alpha = it.alpha)
+                    stroke = null
+                    rectangle(start - Vector2(strokeWeight / 2.0, 0.0), it.strokeWeight, it.lineSegment.length)
+                }
             }
-            drawer.lineSegments(lineSegments)
 
         }
     }
@@ -123,13 +131,29 @@ private fun generateSplitBars(
     attack: Double,
     decay: Double
 ) = List(numOfBars) { index ->
-    val grid = sketchBounds.grid(numOfBars, numOfSplits, gutterY = 10.0)
+    val grid = sketchBounds.grid(numOfBars, numOfSplits, gutterY = 10.0, gutterX = 10.0)
     List(numOfSplits) { splitIndex ->
         val barRect = grid.flatten()[index + splitIndex * (numOfBars - 1) + splitIndex]
         val lineStart = barRect.center - Vector2(0.0, barRect.height / 2.0)
         val lineEnd = barRect.center + Vector2(0.0, barRect.height / 2.0)
-        Bar(lineStart, lineEnd, tickAlpha = tickAlpha, attack = attack, decay = decay)
+        Bar(
+            lineStart,
+            lineEnd,
+            tickAlpha = tickAlpha,
+            attack = attack,
+            decay = decay,
+            color = getColorShade(ColorRGBa.DARK_GOLDEN_ROD, ColorRGBa.DARK_MAGENTA, numOfSplits, splitIndex)
+        )
     }
+}
+
+private fun getColorShade(color1: ColorRGBa, color2: ColorRGBa, numOfSplits: Int, splitIndex: Int): ColorRGBa {
+    return if (numOfSplits > 2) {
+        val middle = (numOfSplits - 1) / 2.0
+        val factor = (abs(splitIndex - middle) / middle).pow(2)
+        val other = color2.mix(color1, 3.0 / numOfSplits)
+        color1.mix(other, factor)
+    } else color1
 }
 
 internal class Bar(
@@ -138,7 +162,8 @@ internal class Bar(
     private val tickAlpha: Double = 1.0,
     private val attack: Double = 0.5,
     private val decay: Double = 0.01,
-    val strokeWeight: Double = 40.0,
+    val strokeWeight: Double = 25.0,
+    val color: ColorRGBa,
 ) {
 
     val lineSegment = LineSegment(start, end)
@@ -164,7 +189,7 @@ internal class Bar(
     context(Program)
     fun draw() {
         drawer.strokeWeight = strokeWeight
-        drawer.stroke = ColorRGBa.DARK_GOLDEN_ROD.copy(alpha = alpha)
+        drawer.stroke = color.copy(alpha = alpha)
         drawer.lineSegment(lineSegment)
     }
 
