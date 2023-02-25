@@ -61,6 +61,8 @@ abstract class Move(
     val lengthFrames: Int,
 ) {
 
+    val lastFrame = lengthFrames - 1
+
     /** Executed when it's this moves time in the movie */
     abstract fun Program.moveFunction(frameCount: Int)
 
