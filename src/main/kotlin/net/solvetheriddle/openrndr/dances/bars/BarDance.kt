@@ -19,6 +19,7 @@ private const val RECORDING = false
 fun main() = application {
     configure {
         sketchSize(Display.LG_SQUARE_LEFT)
+//        sketchSize(Display.LG_PORTRAIT_LEFT)
 //        sketchSize(Display.MACBOOK_AIR)
     }
 
@@ -55,19 +56,21 @@ private fun generateMovie(sketchBounds: Rectangle): Movie {
     val decayLength = (tickAlpha / decay).toInt()
 
     return Movie(loop = !RECORDING).apply {
-//        append(BarTickMove(sketchBounds, heightPercentage = 0.1, numOfBars, framesPerTickToFill, tickAlpha, attack, decay, direction = 1))
-//        append(BarTickMove(sketchBounds, heightPercentage = 0.2, numOfBars, framesPerTickToFill, tickAlpha, attack, decay, direction = -1), -decayLength)
-//        append(BarTickMove(sketchBounds, heightPercentage = 0.4, numOfBars, framesPerTickToFill, tickAlpha, attack, decay, direction = 1), -decayLength)
-//        append(BarTickMove(sketchBounds, heightPercentage = 0.6, numOfBars, framesPerTickToFill, tickAlpha, attack, decay, direction = -1), -decayLength)
-//        append(BarTickMove(sketchBounds, heightPercentage = 0.8, numOfBars, framesPerTickToFill, tickAlpha, attack, decay, direction = 1), -decayLength)
-//        append(BarTickMove(sketchBounds, heightPercentage = 1.0, numOfBars, framesPerTickToFill, tickAlpha, attack, decay, direction = -1), -decayLength)
-//        append(SplitBarTickMove(sketchBounds, numOfSplits = 2, numOfBars, framesPerTickToFill + 1, tickAlpha, attack / 2, decay, direction = 1), -decayLength)
-//        append(SplitBarTickMove(sketchBounds, numOfSplits = 4, numOfBars, framesPerTickToFill + 1, tickAlpha, attack / 2, decay2, direction = -1), -(decayLength * 1.2).toInt())
-//        append(SplitBarTickMove(sketchBounds, numOfSplits = 8, numOfBars, framesPerTickToFill + 2, tickAlpha, attack / 2, decay3, direction = 1), -calculateDecayLength(tickAlpha, decay2))
-//        append(SplitBarTickMove(sketchBounds, numOfSplits = 16, numOfBars, framesPerTickToFill + 2, tickAlpha, attack / 2, decay4, direction = -1), -calculateDecayLength(tickAlpha, decay3))
-//        append(SplitBarTickMove(sketchBounds, numOfSplits = 32, numOfBars, framesPerTickToFill + 4, tickAlpha, attack / 2, decay5, direction = 1), -calculateDecayLength(tickAlpha, decay4))
-        add(FillMove(sketchBounds, numOfBars, tickAlpha))
-        add(SplitBarTickMove(sketchBounds, numOfSplits = 32, numOfBars, framesPerTickToFill + 4, tickAlpha, attack / 2, decay5, direction = 1))
+        append(BarTickMove(sketchBounds, heightPercentage = 0.1, numOfBars, framesPerTickToFill, tickAlpha, attack, decay, direction = 1))
+        append(BarTickMove(sketchBounds, heightPercentage = 0.2, numOfBars, framesPerTickToFill, tickAlpha, attack, decay, direction = -1), -decayLength)
+        append(BarTickMove(sketchBounds, heightPercentage = 0.4, numOfBars, framesPerTickToFill, tickAlpha, attack, decay, direction = 1), -decayLength)
+        append(BarTickMove(sketchBounds, heightPercentage = 0.6, numOfBars, framesPerTickToFill, tickAlpha, attack, decay, direction = -1), -decayLength)
+        append(BarTickMove(sketchBounds, heightPercentage = 0.8, numOfBars, framesPerTickToFill, tickAlpha, attack, decay, direction = 1), -decayLength)
+        append(BarTickMove(sketchBounds, heightPercentage = 1.0, numOfBars, framesPerTickToFill, tickAlpha, attack, decay, direction = -1), -decayLength)
+        append(SplitBarTickMove(sketchBounds, numOfSplits = 2, numOfBars, framesPerTickToFill + 1, tickAlpha, attack / 2, decay, direction = 1), -decayLength)
+        append(SplitBarTickMove(sketchBounds, numOfSplits = 4, numOfBars, framesPerTickToFill + 1, tickAlpha, attack / 2, decay2, direction = -1), -(decayLength * 1.2).toInt())
+        append(SplitBarTickMove(sketchBounds, numOfSplits = 8, numOfBars, framesPerTickToFill + 2, tickAlpha, attack / 2, decay3, direction = 1), -calculateDecayLength(tickAlpha, decay2))
+        append(SplitBarTickMove(sketchBounds, numOfSplits = 16, numOfBars, framesPerTickToFill + 2, tickAlpha, attack / 2, decay4, direction = -1), -calculateDecayLength(tickAlpha, decay3))
+        val firstRectangleMove = RectangleTickMove(sketchBounds, numOfBars, framesPerTickToFill + 3, tickAlpha, attack / 2, decay5, direction = 1)
+        append(firstRectangleMove, -calculateDecayLength(tickAlpha, decay4))
+        append(SplitBarTickMove(sketchBounds, numOfSplits = 32, numOfBars, framesPerTickToFill + 3, tickAlpha, attack / 2, decay5, direction = 1), -firstRectangleMove.lengthFrames)
+//        add(FillMove(sketchBounds, numOfBars, tickAlpha))
+//        add(SplitBarTickMove(sketchBounds, numOfSplits = 32, numOfBars, framesPerTickToFill + 4, tickAlpha, attack / 2, decay5, direction = 1))
     }
 }
 

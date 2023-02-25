@@ -14,23 +14,23 @@ import kotlin.math.ceil
 import kotlin.math.pow
 
 internal abstract class TickMove<T>(
-    private val bars: List<T>,
+    private val tickUnit: List<T>,
     private val framesPerTick: Int,
-    tickAlpha: Double, attack: Double, decay: Double,
+    protected val tickAlpha: Double, attack: Double, decay: Double,
     private val direction: Int = 1,
-) : Move(calculateTickMoveLength(bars.size, framesPerTick, tickAlpha, attack, decay)) {
+) : Move(calculateTickMoveLength(tickUnit.size, framesPerTick, tickAlpha, attack, decay)) {
 
-    private val initTickPointer = if (direction == 1) 0 else bars.lastIndex
+    private val initTickPointer = if (direction == 1) 0 else tickUnit.lastIndex
     private var tickPointer = initTickPointer
 
     override fun Program.moveFunction(frameCount: Int) {
         if (frameCount % framesPerTick == 0) {
-            if (tickPointer in bars.indices) {
-                tick(bars[tickPointer])
+            if (tickPointer in tickUnit.indices) {
+                tick(tickUnit[tickPointer])
                 tickPointer += direction
             }
         }
-        updateAndDraw(frameCount, bars)
+        updateAndDraw(frameCount, tickUnit)
     }
 
     abstract fun tick(item: T)
@@ -57,14 +57,21 @@ internal class BarTickMove(
     framesPerTick: Int,
     tickAlpha: Double, attack: Double, decay: Double,
     direction: Int = 1,
-) : TickMove<Bar>(generateBars(sketchBounds, heightPercentage, numOfBars, tickAlpha, attack, decay), framesPerTick, tickAlpha, attack, decay, direction) {
+) : TickMove<LineSegmentTickUnit>(
+    generateBars(sketchBounds, heightPercentage, numOfBars, tickAlpha, attack, decay),
+    framesPerTick,
+    tickAlpha,
+    attack,
+    decay,
+    direction
+) {
 
-    override fun tick(item: Bar) {
+    override fun tick(item: LineSegmentTickUnit) {
         item.tick()
     }
 
     context(Program)
-    override fun updateAndDraw(frameCount: Int, allItems: List<Bar>) {
+    override fun updateAndDraw(frameCount: Int, allItems: List<LineSegmentTickUnit>) {
         allItems.forEach {
             it.update(frameCount)
             it.draw()
@@ -85,7 +92,7 @@ private fun generateBars(
     val yCenter = sketchBounds.height / 2.0
     val lineStart = Vector2(x, yCenter - height / 2.0)
     val lineEnd = Vector2(x, yCenter + height / 2.0)
-    Bar(lineStart, lineEnd, tickAlpha = tickAlpha, attack = attack, decay = decay, color = ColorRGBa.DARK_GOLDEN_ROD)
+    LineSegmentTickUnit(lineStart, lineEnd, tickAlpha = tickAlpha, attack = attack, decay = decay, color = ColorRGBa.DARK_GOLDEN_ROD)
 }
 
 internal class SplitBarTickMove(
@@ -95,19 +102,22 @@ internal class SplitBarTickMove(
     framesPerTick: Int,
     tickAlpha: Double, attack: Double, decay: Double,
     direction: Int = 1,
-) : TickMove<List<Bar>>(generateSplitBars(sketchBounds, numOfSplits, numOfBars, tickAlpha, attack, decay), framesPerTick, tickAlpha, attack, decay, direction) {
+) : TickMove<List<LineSegmentTickUnit>>(
+    generateSplitBars(sketchBounds, numOfSplits, numOfBars, tickAlpha, attack, decay),
+    framesPerTick,
+    tickAlpha,
+    attack,
+    decay,
+    direction
+) {
 
-    override fun tick(item: List<Bar>) {
-        item.forEach {
-            it.tick()
-        }
+    override fun tick(item: List<LineSegmentTickUnit>) {
+        item.forEach { it.tick() }
     }
 
     context(Program)
-    override fun updateAndDraw(frameCount: Int, allItems: List<List<Bar>>) {
+    override fun updateAndDraw(frameCount: Int, allItems: List<List<LineSegmentTickUnit>>) {
         allItems.forEach { column ->
-//            drawer.strokeWeight = column.first().strokeWeight
-//            drawer.stroke = ColorRGBa.DARK_GOLDEN_ROD.copy(alpha = column.first().alpha)
             drawer.rectangles {
                 column.forEach {
                     it.update(frameCount)
@@ -118,7 +128,6 @@ internal class SplitBarTickMove(
                     rectangle(start - Vector2(strokeWeight / 2.0, 0.0), it.strokeWeight, it.lineSegment.length)
                 }
             }
-
         }
     }
 }
@@ -136,7 +145,7 @@ private fun generateSplitBars(
         val barRect = grid.flatten()[index + splitIndex * (numOfBars - 1) + splitIndex]
         val lineStart = barRect.center - Vector2(0.0, barRect.height / 2.0)
         val lineEnd = barRect.center + Vector2(0.0, barRect.height / 2.0)
-        Bar(
+        LineSegmentTickUnit(
             lineStart,
             lineEnd,
             tickAlpha = tickAlpha,
@@ -156,19 +165,108 @@ private fun getColorShade(color1: ColorRGBa, color2: ColorRGBa, numOfSplits: Int
     } else color1
 }
 
-internal class Bar(
+internal class LineSegmentTickUnit(
     start: Vector2,
     end: Vector2,
+    tickAlpha: Double = 1.0,
+    attack: Double = 0.5,
+    decay: Double = 0.01,
+    val strokeWeight: Double = 25.0,
+    val color: ColorRGBa,
+) : TickUnit(tickAlpha, attack, decay) {
+
+    val lineSegment = LineSegment(start, end)
+
+    context(Program)
+    fun draw() {
+        drawer.stroke = color.copy(alpha = alpha)
+        drawer.strokeWeight = strokeWeight
+        drawer.lineSegment(lineSegment)
+    }
+}
+
+internal class RectangleTickMove(
+    sketchBounds: Rectangle,
+    private val gridDimension: Int,
+    framesPerTick: Int,
+    tickAlpha: Double, attack: Double, decay: Double,
+    direction: Int = 1,
+) : TickMove<List<RectangleTickUnit>>(
+    generateRectangles(sketchBounds, gridDimension, tickAlpha, attack, decay),
+    framesPerTick,
+    tickAlpha,
+    attack,
+    decay,
+    direction
+) {
+
+    override fun tick(item: List<RectangleTickUnit>) {
+        item.forEach { it.tick() }
+    }
+
+    context(Program)
+    override fun updateAndDraw(frameCount: Int, allItems: List<List<RectangleTickUnit>>) {
+        drawer.stroke = null
+        drawer.rectangles {
+            allItems.flatten().forEachIndexed { itemIndex: Int, it ->
+                it.update(frameCount)
+                fill = getFillColor(itemIndex, it.alpha)
+                rectangle(it.rectangle)
+//                rectangle(it.scaledBy(2.0, 0.5, 0.5))
+            }
+            if (frameCount == lastFrame) {
+                allItems.flatten().forEach { it.reset() }
+            }
+        }
+    }
+
+    private fun getFillColor(itemIndex: Int, alpha: Double): ColorRGBa {
+        val columnIndex = itemIndex % gridDimension
+        val rowIndex = itemIndex / gridDimension
+        val originalFillColor = ColorRGBa.DARK_GOLDEN_ROD.opacify(tickAlpha)
+        val firstColor = ColorRGBa.DARK_MAGENTA
+        val secondColor = ColorRGBa.MAGENTA
+        return if (rowIndex < gridDimension / 2) {
+            val secondary = firstColor.mix(secondColor, (columnIndex + 1.0) / gridDimension)
+            originalFillColor.mix(secondary, (rowIndex + 1.0) / (gridDimension / 2.0))
+        } else {
+            val secondary = firstColor.mix(secondColor, (columnIndex + 1.0) / gridDimension)
+            originalFillColor.mix(secondary, (gridDimension - rowIndex + 1.0) / (gridDimension / 2.0))
+        }.copy(alpha = alpha)
+    }
+}
+
+internal fun generateRectangles(sketchBounds: Rectangle, gridDimension: Int, tickAlpha: Double, attack: Double, decay: Double): List<List<RectangleTickUnit>> {
+    return sketchBounds.grid(gridDimension, gridDimension, gutterX = 10.0, gutterY = 10.0)
+        .transpose2()
+        .map {
+            it.map { rectangle ->
+                RectangleTickUnit(rectangle, tickAlpha, attack, 0.0)
+            }
+        }
+}
+
+internal class RectangleTickUnit(
+    val rectangle: Rectangle,
+    tickAlpha: Double = 1.0,
+    attack: Double = 0.5,
+    decay: Double = 0.01,
+) : TickUnit(tickAlpha, attack, decay) {
+
+    fun reset() {
+        alpha = 0.0
+        state = State.DEFAULT
+    }
+}
+
+internal abstract class TickUnit(
     private val tickAlpha: Double = 1.0,
     private val attack: Double = 0.5,
     private val decay: Double = 0.01,
-    val strokeWeight: Double = 25.0,
-    val color: ColorRGBa,
 ) {
 
-    val lineSegment = LineSegment(start, end)
     var alpha = 0.0
-    private var state = State.DEFAULT
+    protected var state = State.DEFAULT
 
     fun tick() {
         state = State.ATTACK
@@ -186,16 +284,21 @@ internal class Bar(
         if (state == State.DECAY && alpha > 0) alpha -= decay
     }
 
-    context(Program)
-    fun draw() {
-        drawer.strokeWeight = strokeWeight
-        drawer.stroke = color.copy(alpha = alpha)
-        drawer.lineSegment(lineSegment)
-    }
-
     enum class State {
         DEFAULT,
         ATTACK,
         DECAY,
+    }
+}
+
+private fun <E> List<List<E>>.transpose2(): List<List<E>> {
+    val maxRowSize = maxOf { it.size }
+    val rowIndices = 0 until maxRowSize
+    return indices.map { columnIndex ->
+        rowIndices.map { rowIndex ->
+            // instead of getting input[column][row], get input[row][column]
+            val element = get(rowIndex)[columnIndex]
+            element
+        }
     }
 }
