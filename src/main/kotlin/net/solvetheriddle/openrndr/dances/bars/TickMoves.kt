@@ -4,7 +4,9 @@ import net.solvetheriddle.openrndr.tools.Move
 import org.openrndr.Program
 import org.openrndr.color.ColorRGBa
 import org.openrndr.extra.color.presets.DARK_GOLDEN_ROD
-import org.openrndr.extra.color.presets.DARK_MAGENTA
+import org.openrndr.extra.color.presets.DEEP_SKY_BLUE
+import org.openrndr.extra.color.presets.INDIGO
+import org.openrndr.extra.easing.easeElasticOut
 import org.openrndr.math.Vector2
 import org.openrndr.shape.Rectangle
 import kotlin.math.ceil
@@ -12,7 +14,7 @@ import kotlin.math.ceil
 internal abstract class TickMove<T>(
     private val tickUnit: List<T>,
     private val framesPerTick: Int,
-    protected val tickAlpha: Double, attack: Double, decay: Double,
+    tickAlpha: Double, attack: Double, decay: Double,
     private val direction: Int = 1,
 ) : Move(calculateTickMoveLength(tickUnit.size, framesPerTick, tickAlpha, attack, decay)) {
 
@@ -119,13 +121,17 @@ internal class RectangleTickMove(
     tickAlpha: Double, attack: Double, decay: Double,
     direction: Int = 1,
 ) : TickMove<List<RectangleTickUnit>>(
-    TickUnitFactory.generateRectangles(sketchBounds, gridDimension, tickAlpha, attack, decay),
+    TickUnitFactory.generateRectangles(sketchBounds, gridDimension, tickAlpha, attack),
     framesPerTick,
     tickAlpha,
     attack,
     decay,
     direction
 ) {
+
+    private val originalFillColor = ColorRGBa.INDIGO
+    private val centerEdgeColor = ColorRGBa.MAGENTA
+    private val centerColor =  ColorRGBa.DARK_GOLDEN_ROD.opacify(tickAlpha)
 
     override fun tick(item: List<RectangleTickUnit>) {
         item.forEach { it.tick() }
@@ -135,9 +141,9 @@ internal class RectangleTickMove(
     override fun updateAndDraw(frameCount: Int, allItems: List<List<RectangleTickUnit>>) {
         drawer.stroke = null
         drawer.rectangles {
-            allItems.flatten().forEachIndexed { itemIndex: Int, it ->
+            allItems.flatten().forEach {
                 it.update(frameCount)
-                fill = getFillColor(itemIndex, it.alpha)
+                fill = getFillColor(it.rectangle, drawer.bounds, it.alpha)
                 rectangle(it.rectangle)
 //                rectangle(it.scaledBy(2.0, 0.5, 0.5))
             }
@@ -147,18 +153,14 @@ internal class RectangleTickMove(
         }
     }
 
-    private fun getFillColor(itemIndex: Int, alpha: Double): ColorRGBa {
-        val columnIndex = itemIndex % gridDimension
-        val rowIndex = itemIndex / gridDimension
-        val originalFillColor = ColorRGBa.DARK_GOLDEN_ROD.opacify(tickAlpha)
-        val firstColor = ColorRGBa.DARK_MAGENTA
-        val secondColor = ColorRGBa.MAGENTA
-        return if (rowIndex < gridDimension / 2) {
-            val secondary = firstColor.mix(secondColor, (columnIndex + 1.0) / gridDimension)
-            originalFillColor.mix(secondary, (rowIndex + 1.0) / (gridDimension / 2.0))
+    private fun getFillColor(position: Rectangle, bounds: Rectangle, alpha: Double): ColorRGBa {
+        val distFromCenter = position.center.distanceTo(bounds.center)
+        val radialBoundary = bounds.width / 3.0
+        return if (distFromCenter < radialBoundary) {
+            centerColor.mix(centerEdgeColor, distFromCenter / radialBoundary)
         } else {
-            val secondary = firstColor.mix(secondColor, (columnIndex + 1.0) / gridDimension)
-            originalFillColor.mix(secondary, (gridDimension - rowIndex + 1.0) / (gridDimension / 2.0))
+            val factor = (distFromCenter - radialBoundary) / (bounds.width / 2.0 - radialBoundary)
+            centerEdgeColor.mix(originalFillColor, factor)
         }.copy(alpha = alpha)
     }
 }

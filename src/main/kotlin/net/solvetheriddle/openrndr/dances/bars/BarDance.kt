@@ -66,56 +66,14 @@ private fun generateMovie(sketchBounds: Rectangle): Movie {
         append(SplitBarTickMove(sketchBounds, numOfSplits = 4, numOfBars, framesPerTickToFill + 1, tickAlpha, attack / 2, decay2, direction = -1), -(decayLength * 1.2).toInt())
         append(SplitBarTickMove(sketchBounds, numOfSplits = 8, numOfBars, framesPerTickToFill + 2, tickAlpha, attack / 2, decay3, direction = 1), -calculateDecayLength(tickAlpha, decay2))
         append(SplitBarTickMove(sketchBounds, numOfSplits = 16, numOfBars, framesPerTickToFill + 2, tickAlpha, attack / 2, decay4, direction = -1), -calculateDecayLength(tickAlpha, decay3))
+
         val firstRectangleMove = RectangleTickMove(sketchBounds, numOfBars, framesPerTickToFill + 3, tickAlpha, attack / 2, decay5, direction = 1)
         append(firstRectangleMove, -calculateDecayLength(tickAlpha, decay4))
         append(SplitBarTickMove(sketchBounds, numOfSplits = 32, numOfBars, framesPerTickToFill + 3, tickAlpha, attack / 2, decay5, direction = 1), -firstRectangleMove.lengthFrames)
-//        add(FillMove(sketchBounds, numOfBars, tickAlpha))
-//        add(SplitBarTickMove(sketchBounds, numOfSplits = 32, numOfBars, framesPerTickToFill + 4, tickAlpha, attack / 2, decay5, direction = 1))
-    }
-}
 
-internal class FillMove(
-    sketchBounds: Rectangle,
-    private val numOfBars: Int,
-    private val tickAlpha: Double
-) : Move(60 * 10) {
-
-    private val rectangles = sketchBounds.grid(numOfBars, numOfBars, gutterX = 10.0, gutterY = 10.0).flatten()
-    private val colorSegment = tickAlpha / numOfBars.toDouble()
-
-    override fun Program.moveFunction(frameCount: Int) {
-        drawer.stroke = null
-//        drawer.rectangles(RectangleBatch( drawer.drawStyle.shadeStyle))
-        drawer.rectangles {
-            rectangles.forEachIndexed { itemIndex: Int, it ->
-                val columnIndex = itemIndex % numOfBars
-                val rowIndex = itemIndex / numOfBars
-//                val colorDark = getColorForSegment(columnIndex * colorSegment)
-//                val colorBright = getColorForSegment((columnIndex + 1) * colorSegment)
-                val originalFillColor = ColorRGBa.DARK_GOLDEN_ROD.opacify(tickAlpha)
-                val firstColor = ColorRGBa.DARK_MAGENTA
-                val secondColor = ColorRGBa.MAGENTA
-                val fillColor = if (rowIndex < numOfBars / 2) {
-                    val secondary = firstColor.mix(secondColor, (columnIndex + 1.0) / numOfBars)
-                    originalFillColor.mix(secondary, (rowIndex + 1.0) / (numOfBars / 2.0))
-                } else {
-                    val secondary = firstColor.mix(secondColor, (columnIndex + 1.0) / numOfBars)
-                    originalFillColor.mix(secondary, (numOfBars - rowIndex + 1.0) / (numOfBars / 2.0))
-                }
-                fill = fillColor
-
-//                drawer.shadeStyle = linearGradient(colorDark, colorBright, rotation = -90.0)
-                rectangle(it)
-//                rectangle(it.scaledBy(2.0, 0.5, 0.5))
-            }
-        }
-//        val geometry = null
-//        val drawStyle = drawer.drawStyle.copy(shadeStyle = )
-//        drawer.rectangles(RectangleBatch(geometry, drawStyle))
+//        add(PulseMove(sketchBounds, numOfBars, tickAlpha))
     }
 
-    private fun getColorForSegment(factor: Double) = ColorRGBa.DARK_GOLDEN_ROD.opacify(factor)
 }
 
 private fun calculateDecayLength(tickAlpha: Double, decay: Double) = ((tickAlpha / decay) * 1.1).toInt()
-

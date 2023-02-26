@@ -132,7 +132,6 @@ object TickUnitFactory {
         gridDimension: Int,
         tickAlpha: Double,
         attack: Double,
-        decay: Double
     ): List<List<RectangleTickUnit>> {
         return sketchBounds.grid(gridDimension, gridDimension, gutterX = 10.0, gutterY = 10.0)
             .transpose2()
