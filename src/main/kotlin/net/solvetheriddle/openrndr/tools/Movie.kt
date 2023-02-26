@@ -67,7 +67,7 @@ abstract class Scene(
     val lengthFrames: Int,
 ) {
 
-    val lastFrame = lengthFrames - 1
+    private val lastFrame = lengthFrames - 1
 
     /**
      * Executed when it's this [Scene]'s time in the movie.
@@ -78,6 +78,7 @@ abstract class Scene(
     context(Program)
     internal fun execute(sceneFrameCount: Int) {
         sceneFunction(sceneFrameCount)
+        if (sceneFrameCount == lastFrame) reset()
     }
 
     /**

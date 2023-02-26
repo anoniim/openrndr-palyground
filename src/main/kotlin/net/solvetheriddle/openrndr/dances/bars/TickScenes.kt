@@ -131,12 +131,15 @@ internal class RectangleTickScene(
     private val centerEdgeColor = ColorRGBa.MAGENTA
     private val centerColor =  ColorRGBa.DARK_GOLDEN_ROD.opacify(tickAlpha)
 
+    private var allItems: List<List<RectangleTickUnit>> = listOf()
+
     override fun tick(item: List<RectangleTickUnit>) {
         item.forEach { it.tick() }
     }
 
     context(Program)
     override fun updateAndDraw(frameCount: Int, allItems: List<List<RectangleTickUnit>>) {
+        this.allItems = allItems
         drawer.stroke = null
         drawer.rectangles {
             allItems.flatten().forEach {
@@ -145,10 +148,12 @@ internal class RectangleTickScene(
                 rectangle(it.rectangle)
 //                rectangle(it.scaledBy(2.0, 0.5, 0.5))
             }
-            if (frameCount == lastFrame) {
-                allItems.flatten().forEach { it.reset() }
-            }
         }
+    }
+
+    override fun reset() {
+        super.reset()
+        allItems.flatten().forEach { it.reset() }
     }
 
     private fun getFillColor(position: Rectangle, bounds: Rectangle, alpha: Double): ColorRGBa {

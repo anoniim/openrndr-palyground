@@ -29,10 +29,11 @@ internal class PulseScene(
                 rectangle(it.rectangle)
 //                rectangle(it.scaledBy(2.0, 0.5, 0.5))
             }
-            if (frameCount == lastFrame) {
-                pulseUnits.forEach { it.reset() }
-            }
         }
+    }
+
+    override fun reset() {
+        pulseUnits.forEach { it.reset() }
     }
 
     private fun Program.drawCircle(frameCount: Int, lengthFrames: Int) {
