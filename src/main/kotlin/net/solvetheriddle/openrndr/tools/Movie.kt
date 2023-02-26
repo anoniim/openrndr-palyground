@@ -1,21 +1,20 @@
 package net.solvetheriddle.openrndr.tools
 
 import org.openrndr.Program
-import java.lang.IllegalStateException
 
 /** Represents a collection of [Scene]s that are executed at certain point (frame) within the program. */
 class Movie(
     private val loop: Boolean = true,
 ) {
 
-    private val scenes: MutableMap<Scene, Int> = mutableMapOf()
+    private val scenes: MutableList<MovieScene> = mutableListOf()
 
     /** Appends given [scene] to the end of the movie (after the last added [Scene]). [startOffset] is factored in when calculating start frame. */
     fun append(scene: Scene, startOffset: Int = 0) {
         val startFrame = if (scenes.isNotEmpty()) {
-            val lastScene = scenes.keys.last()
-            val lastSceneStart = scenes[lastScene] ?: throw IllegalStateException()
-            lastSceneStart + lastScene.lengthFrames + startOffset
+            val lastScene = scenes.last()
+            val lastSceneStart = lastScene.startFrame
+            lastSceneStart + lastScene.length + startOffset
         } else 0
 
         add(scene, startFrame)
@@ -24,23 +23,23 @@ class Movie(
     /** Adds given [scene] to the movie. The [Scene] starts on the given [startFrame] */
     @Suppress("MemberVisibilityCanBePrivate")
     fun add(scene: Scene, startFrame: Int = 0) {
-        scenes[scene] = startFrame
+        scenes.add(MovieScene(scene, startFrame))
         updateTotalLength()
     }
 
     context(Program)
     fun play(onFinish: () -> Unit = {}) {
         val movieFrameCount = if (loop) frameCount % totalLength else frameCount
-        scenes.keys.forEach {
-            val sceneStart = scenes[it] ?: throw IllegalStateException()
-            val sceneEnd = sceneStart + it.lengthFrames - 1
+        scenes.forEach {
+            val sceneStart = it.startFrame
+            val sceneEnd = sceneStart + it.length - 1
             // Skip if this scene is not supposed to be played right now
             if (movieFrameCount in sceneStart .. sceneEnd) {
                 val sceneFrameCount = movieFrameCount - sceneStart
-                it.execute(sceneFrameCount)
+                it.scene.execute(sceneFrameCount)
             }
             // Reset after last frame of the scene
-            if (movieFrameCount == sceneEnd) it.reset()
+            if (movieFrameCount == sceneEnd) it.scene.reset()
         }
         if (movieFrameCount == totalLength) { // FIXME movieFrameCount would never be totalLength in looping movies due to `if (loop) frameCount % totalLength`
             onFinish()
@@ -50,11 +49,18 @@ class Movie(
     private var totalLength = 0
 
     private fun updateTotalLength() {
-        totalLength = scenes.keys.maxOf {
-            val startFrame = scenes[it] ?: throw IllegalStateException()
-            startFrame + it.lengthFrames
+        totalLength = scenes.maxOf {
+            val startFrame = it.startFrame
+            startFrame + it.length
         }
     }
+}
+
+private class MovieScene(
+    val scene: Scene,
+    val startFrame: Int,
+) {
+    val length = scene.lengthFrames
 }
 
 abstract class Scene(
@@ -70,8 +76,8 @@ abstract class Scene(
     abstract fun Program.sceneFunction(frameCount: Int)
 
     context(Program)
-    internal fun execute(localFrameCount: Int) {
-        sceneFunction(localFrameCount)
+    internal fun execute(sceneFrameCount: Int) {
+        sceneFunction(sceneFrameCount)
     }
 
     /**
