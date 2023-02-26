@@ -16,7 +16,7 @@ val orxFeatures = setOf<String>(
     "orx-color",
     "orx-compositor",
 //  "orx-dnk3",
-//  "orx-easing",
+  "orx-easing",
 //  "orx-file-watcher",
 //  "orx-filter-extension",
     "orx-fx",
