@@ -1,7 +1,7 @@
 package net.solvetheriddle.openrndr.dances.spirals
 
 import net.solvetheriddle.openrndr.Display
-import net.solvetheriddle.openrndr.tools.Move
+import net.solvetheriddle.openrndr.tools.Scene
 import net.solvetheriddle.openrndr.tools.Movie
 import org.openrndr.Program
 import org.openrndr.animatable.easing.QuadInOut
@@ -136,22 +136,22 @@ fun main() = application {
         )
 
         val movie = Movie(loop = !recording).apply {
-            add(SpiralShapeMove(centralSpiral1))
-            append(SpiralShapeMove(centralSpiral2))
-            append(SpiralShapeMove(ring), -20)
-            append(SpiralShapeMove(topSpiralRevealHide), -40)
-            append(SpiralShapeMove(bottomSpiralRevealHide), -20)
-            append(SpiralShapeMove(topSpiralReveal), -20)
+            add(SpiralShapeScene(centralSpiral1))
+            append(SpiralShapeScene(centralSpiral2))
+            append(SpiralShapeScene(ring), -20)
+            append(SpiralShapeScene(topSpiralRevealHide), -40)
+            append(SpiralShapeScene(bottomSpiralRevealHide), -20)
+            append(SpiralShapeScene(topSpiralReveal), -20)
             append(rotatingMove(topShapeStatic, 0.0, 180.0))
             append(rotatingMove(topShapeStatic, 180.0, 180.0))
             append(rotatingMove(topShapeStatic, 0.0, -180.0))
             append(rotatingMove(topShapeStatic, 180.0, -180.0))
-            append(SpiralShapeMove(verticalShapes))
-            append(SpiralShapeMove(horizontalShapes))
-            append(SpiralShapeMove(verticalShapes))
-            append(SpiralShapeMove(horizontalShapes))
-            append(SpiralShapeMove(allShapesFull))
-            append(SpiralShapeMove(allShapesHalf))
+            append(SpiralShapeScene(verticalShapes))
+            append(SpiralShapeScene(horizontalShapes))
+            append(SpiralShapeScene(verticalShapes))
+            append(SpiralShapeScene(horizontalShapes))
+            append(SpiralShapeScene(allShapesFull))
+            append(SpiralShapeScene(allShapesHalf))
         }
 
         extend {
@@ -167,8 +167,8 @@ fun main() = application {
 }
 
 private fun rotatingMove(bottomShapeStatic: SpiralShape, from: Double, delta: Double) =
-    object: Move(bottomShapeStatic.animationLength) {
-        override fun Program.moveFunction(frameCount: Int) {
+    object: Scene(bottomShapeStatic.animationLength) {
+        override fun Program.sceneFunction(frameCount: Int) {
             bottomShapeStatic.update(frameCount)
             drawer.isolated {
                 val rotationInDegrees = QuadInOut().ease(frameCount.toDouble(), from, delta, (bottomShapeStatic.animationLength - 1.0))
@@ -178,14 +178,14 @@ private fun rotatingMove(bottomShapeStatic: SpiralShape, from: Double, delta: Do
         }
     }
 
-internal class SpiralShapeMove(
+internal class SpiralShapeScene(
     private val shapes: List<SpiralShape>,
     lengthFrames: Int = shapes[0].animationLength,
-) : Move(lengthFrames) {
+) : Scene(lengthFrames) {
 
     constructor(shape: SpiralShape, lengthFrames: Int = shape.animationLength) : this(listOf(shape), lengthFrames)
 
-    override fun Program.moveFunction(frameCount: Int) {
+    override fun Program.sceneFunction(frameCount: Int) {
         shapes.forEach {
 //            drawer.drawTemplateShape(it.templateContour) // config
             it.update(frameCount)

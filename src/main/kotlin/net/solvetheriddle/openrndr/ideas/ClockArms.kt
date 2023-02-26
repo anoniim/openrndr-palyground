@@ -2,7 +2,7 @@ package net.solvetheriddle.openrndr.ideas
 
 import net.solvetheriddle.openrndr.Display
 import net.solvetheriddle.openrndr.sketchSize
-import net.solvetheriddle.openrndr.tools.Move
+import net.solvetheriddle.openrndr.tools.Scene
 import net.solvetheriddle.openrndr.tools.Movie
 import org.openrndr.Program
 import org.openrndr.application
@@ -29,8 +29,8 @@ fun main() = application {
         }
 
         val movie = Movie().apply {
-            append(object: Move(revolutionLength) {
-                override fun Program.moveFunction(frameCount: Int) {
+            append(object: Scene(revolutionLength) {
+                override fun Program.sceneFunction(frameCount: Int) {
                     println(frameCount)
                     val ticksPerFrame = if (numOfArms < revolutionLength) revolutionLength / numOfArms else 1
                     if (frameCount % ticksPerFrame == 0) arms[tickPointer++ % numOfArms].show()

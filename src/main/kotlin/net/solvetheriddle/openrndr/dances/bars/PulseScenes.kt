@@ -1,6 +1,6 @@
 package net.solvetheriddle.openrndr.dances.bars
 
-import net.solvetheriddle.openrndr.tools.Move
+import net.solvetheriddle.openrndr.tools.Scene
 import org.openrndr.Program
 import org.openrndr.color.ColorRGBa
 import org.openrndr.extra.color.presets.DARK_GOLDEN_ROD
@@ -10,17 +10,17 @@ import org.openrndr.extra.easing.easeElasticOut
 import org.openrndr.extra.shapes.grid
 import org.openrndr.shape.Rectangle
 
-internal class PulseMove(
+internal class PulseScene(
     sketchBounds: Rectangle,
     numOfBars: Int,
-) : Move(60 * 10) {
+) : Scene(60 * 10) {
 
     private val rectangles = sketchBounds.grid(numOfBars, numOfBars, gutterX = 10.0, gutterY = 10.0).flatten()
     private val pulseUnits = rectangles.map {
         PulseUnit(it, sketchBounds)
     }
 
-    override fun Program.moveFunction(frameCount: Int) {
+    override fun Program.sceneFunction(frameCount: Int) {
         drawer.stroke = null
         drawer.rectangles {
             pulseUnits.forEach {

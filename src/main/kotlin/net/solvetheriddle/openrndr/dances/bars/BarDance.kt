@@ -2,13 +2,8 @@ package net.solvetheriddle.openrndr.dances.bars
 
 import net.solvetheriddle.openrndr.Display
 import net.solvetheriddle.openrndr.sketchSize
-import net.solvetheriddle.openrndr.tools.Move
 import net.solvetheriddle.openrndr.tools.Movie
-import org.openrndr.Program
 import org.openrndr.application
-import org.openrndr.color.ColorRGBa
-import org.openrndr.extra.color.presets.*
-import org.openrndr.extra.shapes.grid
 import org.openrndr.extra.videoprofiles.ProresProfile
 import org.openrndr.ffmpeg.ScreenRecorder
 import org.openrndr.shape.Rectangle
@@ -56,20 +51,20 @@ private fun generateMovie(sketchBounds: Rectangle): Movie {
     val decayLength = (tickAlpha / decay).toInt()
 
     return Movie(loop = !RECORDING).apply {
-        append(BarTickMove(sketchBounds, heightPercentage = 0.1, numOfBars, framesPerTickToFill, tickAlpha, attack, decay, direction = 1))
-        append(BarTickMove(sketchBounds, heightPercentage = 0.2, numOfBars, framesPerTickToFill, tickAlpha, attack, decay, direction = -1), -decayLength)
-        append(BarTickMove(sketchBounds, heightPercentage = 0.4, numOfBars, framesPerTickToFill, tickAlpha, attack, decay, direction = 1), -decayLength)
-        append(BarTickMove(sketchBounds, heightPercentage = 0.6, numOfBars, framesPerTickToFill, tickAlpha, attack, decay, direction = -1), -decayLength)
-        append(BarTickMove(sketchBounds, heightPercentage = 0.8, numOfBars, framesPerTickToFill, tickAlpha, attack, decay, direction = 1), -decayLength)
-        append(BarTickMove(sketchBounds, heightPercentage = 1.0, numOfBars, framesPerTickToFill, tickAlpha, attack, decay, direction = -1), -decayLength)
-        append(SplitBarTickMove(sketchBounds, numOfSplits = 2, numOfBars, framesPerTickToFill + 1, tickAlpha, attack / 2, decay, direction = 1), -decayLength)
-        append(SplitBarTickMove(sketchBounds, numOfSplits = 4, numOfBars, framesPerTickToFill + 1, tickAlpha, attack / 2, decay2, direction = -1), -(decayLength * 1.2).toInt())
-        append(SplitBarTickMove(sketchBounds, numOfSplits = 8, numOfBars, framesPerTickToFill + 2, tickAlpha, attack / 2, decay3, direction = 1), -calculateDecayLength(tickAlpha, decay2))
-        append(SplitBarTickMove(sketchBounds, numOfSplits = 16, numOfBars, framesPerTickToFill + 2, tickAlpha, attack / 2, decay4, direction = -1), -calculateDecayLength(tickAlpha, decay3))
+        append(BarTickScene(sketchBounds, heightPercentage = 0.1, numOfBars, framesPerTickToFill, tickAlpha, attack, decay, direction = 1))
+        append(BarTickScene(sketchBounds, heightPercentage = 0.2, numOfBars, framesPerTickToFill, tickAlpha, attack, decay, direction = -1), -decayLength)
+        append(BarTickScene(sketchBounds, heightPercentage = 0.4, numOfBars, framesPerTickToFill, tickAlpha, attack, decay, direction = 1), -decayLength)
+        append(BarTickScene(sketchBounds, heightPercentage = 0.6, numOfBars, framesPerTickToFill, tickAlpha, attack, decay, direction = -1), -decayLength)
+        append(BarTickScene(sketchBounds, heightPercentage = 0.8, numOfBars, framesPerTickToFill, tickAlpha, attack, decay, direction = 1), -decayLength)
+        append(BarTickScene(sketchBounds, heightPercentage = 1.0, numOfBars, framesPerTickToFill, tickAlpha, attack, decay, direction = -1), -decayLength)
+        append(SplitBarTickScene(sketchBounds, numOfSplits = 2, numOfBars, framesPerTickToFill + 1, tickAlpha, attack / 2, decay, direction = 1), -decayLength)
+        append(SplitBarTickScene(sketchBounds, numOfSplits = 4, numOfBars, framesPerTickToFill + 1, tickAlpha, attack / 2, decay2, direction = -1), -(decayLength * 1.2).toInt())
+        append(SplitBarTickScene(sketchBounds, numOfSplits = 8, numOfBars, framesPerTickToFill + 2, tickAlpha, attack / 2, decay3, direction = 1), -calculateDecayLength(tickAlpha, decay2))
+        append(SplitBarTickScene(sketchBounds, numOfSplits = 16, numOfBars, framesPerTickToFill + 2, tickAlpha, attack / 2, decay4, direction = -1), -calculateDecayLength(tickAlpha, decay3))
 
-        val firstRectangleMove = RectangleTickMove(sketchBounds, numOfBars, framesPerTickToFill + 3, tickAlpha, attack / 2, decay5, direction = 1)
+        val firstRectangleMove = RectangleTickScene(sketchBounds, numOfBars, framesPerTickToFill + 3, tickAlpha, attack / 2, decay5, direction = 1)
         append(firstRectangleMove, -calculateDecayLength(tickAlpha, decay4))
-        append(SplitBarTickMove(sketchBounds, numOfSplits = 32, numOfBars, framesPerTickToFill + 3, tickAlpha, attack / 2, decay5, direction = 1), -firstRectangleMove.lengthFrames)
+        append(SplitBarTickScene(sketchBounds, numOfSplits = 32, numOfBars, framesPerTickToFill + 3, tickAlpha, attack / 2, decay5, direction = 1), -firstRectangleMove.lengthFrames)
 
 //        add(PulseMove(sketchBounds, numOfBars, tickAlpha))
     }

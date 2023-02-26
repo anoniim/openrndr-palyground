@@ -1,27 +1,25 @@
 package net.solvetheriddle.openrndr.dances.bars
 
-import net.solvetheriddle.openrndr.tools.Move
+import net.solvetheriddle.openrndr.tools.Scene
 import org.openrndr.Program
 import org.openrndr.color.ColorRGBa
 import org.openrndr.extra.color.presets.DARK_GOLDEN_ROD
-import org.openrndr.extra.color.presets.DEEP_SKY_BLUE
 import org.openrndr.extra.color.presets.INDIGO
-import org.openrndr.extra.easing.easeElasticOut
 import org.openrndr.math.Vector2
 import org.openrndr.shape.Rectangle
 import kotlin.math.ceil
 
-internal abstract class TickMove<T>(
+internal abstract class TickScene<T>(
     private val tickUnit: List<T>,
     private val framesPerTick: Int,
     tickAlpha: Double, attack: Double, decay: Double,
     private val direction: Int = 1,
-) : Move(calculateTickMoveLength(tickUnit.size, framesPerTick, tickAlpha, attack, decay)) {
+) : Scene(calculateTickSceneLength(tickUnit.size, framesPerTick, tickAlpha, attack, decay)) {
 
     private val initTickPointer = if (direction == 1) 0 else tickUnit.lastIndex
     private var tickPointer = initTickPointer
 
-    override fun Program.moveFunction(frameCount: Int) {
+    override fun Program.sceneFunction(frameCount: Int) {
         if (frameCount % framesPerTick == 0) {
             if (tickPointer in tickUnit.indices) {
                 tick(tickUnit[tickPointer])
@@ -41,21 +39,21 @@ internal abstract class TickMove<T>(
     }
 }
 
-private fun calculateTickMoveLength(numOfTicks: Int, framesPerTick: Int, tickAlpha: Double, attack: Double, decay: Double): Int {
+private fun calculateTickSceneLength(numOfTicks: Int, framesPerTick: Int, tickAlpha: Double, attack: Double, decay: Double): Int {
     val appearFrames = framesPerTick * numOfTicks
     val attackFrames = ceil(tickAlpha / attack).toInt()
     val decayFrames = ceil(tickAlpha / decay).toInt()
     return (appearFrames + attackFrames + decayFrames)
 }
 
-internal class BarTickMove(
+internal class BarTickScene(
     sketchBounds: Rectangle,
     heightPercentage: Double,
     numOfBars: Int,
     framesPerTick: Int,
     tickAlpha: Double, attack: Double, decay: Double,
     direction: Int = 1,
-) : TickMove<LineSegmentTickUnit>(
+) : TickScene<LineSegmentTickUnit>(
     TickUnitFactory.generateBars(sketchBounds, heightPercentage, numOfBars, tickAlpha, attack, decay),
     framesPerTick,
     tickAlpha,
@@ -77,14 +75,14 @@ internal class BarTickMove(
     }
 }
 
-internal class SplitBarTickMove(
+internal class SplitBarTickScene(
     sketchBounds: Rectangle,
     numOfSplits: Int,
     numOfBars: Int,
     framesPerTick: Int,
     tickAlpha: Double, attack: Double, decay: Double,
     direction: Int = 1,
-) : TickMove<List<LineSegmentTickUnit>>(
+) : TickScene<List<LineSegmentTickUnit>>(
     TickUnitFactory.generateSplitBars(sketchBounds, numOfSplits, numOfBars, tickAlpha, attack, decay),
     framesPerTick,
     tickAlpha,
@@ -114,13 +112,13 @@ internal class SplitBarTickMove(
     }
 }
 
-internal class RectangleTickMove(
+internal class RectangleTickScene(
     sketchBounds: Rectangle,
     private val gridDimension: Int,
     framesPerTick: Int,
     tickAlpha: Double, attack: Double, decay: Double,
     direction: Int = 1,
-) : TickMove<List<RectangleTickUnit>>(
+) : TickScene<List<RectangleTickUnit>>(
     TickUnitFactory.generateRectangles(sketchBounds, gridDimension, tickAlpha, attack),
     framesPerTick,
     tickAlpha,

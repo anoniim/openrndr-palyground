@@ -3,44 +3,44 @@ package net.solvetheriddle.openrndr.tools
 import org.openrndr.Program
 import java.lang.IllegalStateException
 
-/** Represents a collection of [Move]s that are executed at certain point (frame) within the program. */
+/** Represents a collection of [Scene]s that are executed at certain point (frame) within the program. */
 class Movie(
     private val loop: Boolean = true,
 ) {
 
-    private val moves: MutableMap<Move, Int> = mutableMapOf()
+    private val scenes: MutableMap<Scene, Int> = mutableMapOf()
 
-    /** Appends given [move] to the end of the movie (after the last added Move). [startOffset] is factored in when calculating start frame. */
-    fun append(move: Move, startOffset: Int = 0) {
-        val startFrame = if (moves.isNotEmpty()) {
-            val lastMove = moves.keys.last()
-            val lastMoveStart = moves[lastMove] ?: throw IllegalStateException()
-            lastMoveStart + lastMove.lengthFrames + startOffset
+    /** Appends given [scene] to the end of the movie (after the last added [Scene]). [startOffset] is factored in when calculating start frame. */
+    fun append(scene: Scene, startOffset: Int = 0) {
+        val startFrame = if (scenes.isNotEmpty()) {
+            val lastScene = scenes.keys.last()
+            val lastSceneStart = scenes[lastScene] ?: throw IllegalStateException()
+            lastSceneStart + lastScene.lengthFrames + startOffset
         } else 0
 
-        add(move, startFrame)
+        add(scene, startFrame)
     }
 
-    /** Adds given [move] to the movie. The Move starts on the given [startFrame] */
+    /** Adds given [scene] to the movie. The [Scene] starts on the given [startFrame] */
     @Suppress("MemberVisibilityCanBePrivate")
-    fun add(move: Move, startFrame: Int = 0) {
-        moves[move] = startFrame
+    fun add(scene: Scene, startFrame: Int = 0) {
+        scenes[scene] = startFrame
         updateTotalLength()
     }
 
     context(Program)
     fun play(onFinish: () -> Unit = {}) {
         val movieFrameCount = if (loop) frameCount % totalLength else frameCount
-        moves.keys.forEach {
-            val moveStart = moves[it] ?: throw IllegalStateException()
-            val moveEnd = moveStart + it.lengthFrames - 1
-            // Skip if it's not this move's turn
-            if (movieFrameCount in moveStart .. moveEnd) {
-                val localFrameCount = movieFrameCount - moveStart
-                it.execute(localFrameCount)
+        scenes.keys.forEach {
+            val sceneStart = scenes[it] ?: throw IllegalStateException()
+            val sceneEnd = sceneStart + it.lengthFrames - 1
+            // Skip if this scene is not supposed to be played right now
+            if (movieFrameCount in sceneStart .. sceneEnd) {
+                val sceneFrameCount = movieFrameCount - sceneStart
+                it.execute(sceneFrameCount)
             }
-            // Reset after last frame of the move
-            if (movieFrameCount == moveEnd) it.reset()
+            // Reset after last frame of the scene
+            if (movieFrameCount == sceneEnd) it.reset()
         }
         if (movieFrameCount == totalLength) { // FIXME movieFrameCount would never be totalLength in looping movies due to `if (loop) frameCount % totalLength`
             onFinish()
@@ -50,27 +50,33 @@ class Movie(
     private var totalLength = 0
 
     private fun updateTotalLength() {
-        totalLength = moves.keys.maxOf {
-            val startFrame = moves[it] ?: throw IllegalStateException()
+        totalLength = scenes.keys.maxOf {
+            val startFrame = scenes[it] ?: throw IllegalStateException()
             startFrame + it.lengthFrames
         }
     }
 }
 
-abstract class Move(
+abstract class Scene(
     val lengthFrames: Int,
 ) {
 
     val lastFrame = lengthFrames - 1
 
-    /** Executed when it's this moves time in the movie */
-    abstract fun Program.moveFunction(frameCount: Int)
+    /**
+     * Executed when it's this [Scene]'s time in the movie.
+     * [frameCount] is in range 0 .. [lastFrame]
+     */
+    abstract fun Program.sceneFunction(frameCount: Int)
 
     context(Program)
     internal fun execute(localFrameCount: Int) {
-        moveFunction(localFrameCount)
+        sceneFunction(localFrameCount)
     }
 
-    /** Resets the move so that it can be executed again in looping movies. Called after the last frame of the move. */
+    /**
+     * Resets the [Scene] so that it can be executed again in looping movies.
+     * Called on this [Scene]'s last frame (after its [sceneFunction] has been called).
+     */
     open fun reset() {}
 }
