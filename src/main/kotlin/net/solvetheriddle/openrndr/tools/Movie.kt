@@ -42,7 +42,7 @@ class Movie(
             // Reset after last frame of the move
             if (movieFrameCount == moveEnd) it.reset()
         }
-        if (movieFrameCount == totalLength) {
+        if (movieFrameCount == totalLength) { // FIXME movieFrameCount would never be totalLength in looping movies due to `if (loop) frameCount % totalLength`
             onFinish()
         }
     }
