@@ -62,7 +62,7 @@ class CompoundScene<T>(
     override fun Program.sceneFunction(sceneFrameCount: Int) {
         val moveFrameCount = sceneFrameCount - passedMovesLength
         currentMove.execute(moveFrameCount)
-        if (sceneFrameCount.isLastFrameOfCurrentMove()) switchToNextMove()
+        if (moveFrameCount.isLastFrameOfCurrentMove()) switchToNextMove()
     }
 
     override fun reset() {
@@ -72,10 +72,14 @@ class CompoundScene<T>(
     }
 
     private fun switchToNextMove() {
-        passedMovesLength += currentMove.length
-        movePointer++
-        val previousState = currentMove.state
-        currentMove = moveGenerators[movePointer].generate(previousState)
+        if (movePointer < moveGenerators.lastIndex) {
+            passedMovesLength += currentMove.length
+            movePointer++
+            val previousState = currentMove.state
+            currentMove = moveGenerators[movePointer].generate(previousState)
+        } else {
+            reset()
+        }
     }
 
     private fun Int.isLastFrameOfCurrentMove(): Boolean {
