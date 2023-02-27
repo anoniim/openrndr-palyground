@@ -26,3 +26,68 @@ abstract class Scene(
      */
     open fun reset() {}
 }
+
+fun <T> compoundScene(
+    initState: T,
+    buildScene: CompoundSceneBuilder<T>.() -> Unit,
+): Scene {
+    val builder = CompoundSceneBuilder<T>()
+    buildScene(builder)
+    val sceneLength = builder.totalSceneLength
+    return CompoundScene(sceneLength, builder.moveFactory, initState)
+}
+
+class CompoundSceneBuilder<T> {
+
+    internal val moveFactory: MutableList<MoveGenerator<T>> = mutableListOf()
+
+    internal var totalSceneLength = 0
+
+    fun move(length: Int, generator: (Int, T) -> Move<T>) {
+        totalSceneLength += length
+        moveFactory.add(MoveGenerator(length, generator))
+    }
+}
+
+class CompoundScene<T>(
+    lengthFrames: Int,
+    private val moveGenerators: List<MoveGenerator<T>>,
+    private val initState: T,
+) : Scene(lengthFrames) {
+
+    private var movePointer = 0
+    private var currentMove = moveGenerators[movePointer].generate(initState)
+    private var passedMovesLength = 0
+
+    override fun Program.sceneFunction(sceneFrameCount: Int) {
+        val moveFrameCount = sceneFrameCount - passedMovesLength
+        currentMove.execute(moveFrameCount)
+        if (sceneFrameCount.isLastFrameOfCurrentMove()) switchToNextMove()
+    }
+
+    override fun reset() {
+        movePointer = 0
+        currentMove = moveGenerators[movePointer].generate(initState)
+        passedMovesLength = 0
+    }
+
+    private fun switchToNextMove() {
+        passedMovesLength += currentMove.length
+        movePointer++
+        val previousState = currentMove.state
+        currentMove = moveGenerators[movePointer].generate(previousState)
+    }
+
+    private fun Int.isLastFrameOfCurrentMove(): Boolean {
+        return this == currentMove.length - 1
+    }
+}
+
+class MoveGenerator<T>(
+    private val length: Int,
+    val generator: (Int, T) -> Move<T>
+) {
+    fun generate(state: T): Move<T> {
+        return generator(length, state)
+    }
+}
