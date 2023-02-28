@@ -33,7 +33,7 @@ fun main() = application {
         }
 
         val movie = Movie(!RECORDING).apply {
-            append(SpiralScene(900, drawer.bounds))
+            append(SolidSpiralScene(900, drawer.bounds))
         }
 
         extend {
@@ -46,13 +46,13 @@ fun main() = application {
     }
 }
 
-private class SpiralScene(
+private class SolidSpiralScene(
     length: Int,
     sketchBounds: Rectangle,
 ) : Scene(length) {
 
     val singleMoveLength = 60 * 7
-    val squares: List<SquareUnit> = generateSquares(sketchBounds, singleMoveLength)
+    val squares: List<InOutSquareUnit> = generateSquares(sketchBounds, singleMoveLength)
 
     var pointer = 0
 
@@ -73,7 +73,7 @@ private class SpiralScene(
         squares.forEach { it.reset() }
     }
 
-    private fun generateSquares(sketchBounds: Rectangle, animationFrames: Int): List<SquareUnit> {
+    private fun generateSquares(sketchBounds: Rectangle, animationFrames: Int): List<InOutSquareUnit> {
         val color1 = ColorRGBa.LIME_GREEN.opacify(0.8)
         val color2 = ColorRGBa.ROYAL_BLUE.opacify(0.8)
         val color3 = ColorRGBa.MOCCASIN.opacify(0.8)
@@ -89,12 +89,12 @@ private class SpiralScene(
                     in 2 * quarterSize.toInt() until 3 * quarterSize.toInt() -> color3.mix(color4, index % quarterSize / quarterSize)
                     else -> color4.mix(color1, index % quarterSize / quarterSize)
                 }
-                SquareUnit(sketchBounds.center, it, animationFrames, color)
+                InOutSquareUnit(sketchBounds.center, it, animationFrames, color)
             }
     }
 }
 
-private class SquareUnit(
+private class InOutSquareUnit(
     private val initPosition: Vector2,
     private val edgePosition: Vector2,
     private val animationFrames: Int,
