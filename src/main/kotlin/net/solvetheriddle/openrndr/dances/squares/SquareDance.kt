@@ -19,7 +19,7 @@ import org.openrndr.math.Vector2
 import org.openrndr.math.mix
 import org.openrndr.shape.Rectangle
 
-private const val RECORDING = true
+private const val RECORDING = false
 
 fun main() = application {
     configure {
