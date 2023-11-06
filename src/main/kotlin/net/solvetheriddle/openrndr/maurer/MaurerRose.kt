@@ -2,26 +2,30 @@
 
 package net.solvetheriddle.openrndr.maurer
 
+import net.solvetheriddle.openrndr.Display
+import net.solvetheriddle.openrndr.sketchSize
+import org.openrndr.KeyEvent
 import org.openrndr.Program
 import org.openrndr.animatable.Animatable
 import org.openrndr.animatable.easing.Easing
 import org.openrndr.application
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.*
+import org.openrndr.extensions.Screenshots
 import org.openrndr.extra.fx.color.LumaOpacity
-import org.openrndr.ffmpeg.ScreenRecorder
 import org.openrndr.math.Vector2
 import org.openrndr.math.asRadians
 import org.openrndr.panel.ControlManager
 import org.openrndr.panel.elements.Range
 import org.openrndr.panel.elements.Slider
+import org.openrndr.panel.elements.button
 import org.openrndr.panel.elements.slider
 import org.openrndr.panel.layout
 import org.openrndr.shape.contour
 import kotlin.math.*
 
 // config Manual or Pre-defined
-//private val net.solvetheriddle.openrndr.aConfig = net.solvetheriddle.openrndr.AnimationConfig(0.5, 1.0, 2.0, 10_000, Easing.SineInOut)
+//private val aConfig = AnimationConfig(0.5, 1.0, 2.0, 10_000, Easing.SineInOut)
 private val aConfig = AnimationConfig.A6
 
 //private const val screenWidth = 896
@@ -29,40 +33,46 @@ private val aConfig = AnimationConfig.A6
 private const val screenWidth = 1163
 private const val screenHeight = 900
 
-//private const val net.solvetheriddle.openrndr.screenWidth = 1748
-//private const val net.solvetheriddle.openrndr.screenHeight = 1240
+// config
+private const val showUi = true
+//private const val screenWidth = 1748
+//private const val screenHeight = 1240
 //private const val radius = screenHeight / 2 * 0.95
 private const val radius = 896 / 2 * 0.95
 private val initialN = aConfig.n1
 private const val initialD = 3.1
 private const val closeShape = false
-private const val curvesEnabled = true
 
 private val rose = MaurerRose()
 private lateinit var nSlider: Slider
+private lateinit var dSlider: Slider
+private var curvesEnabled = false
 
 fun main() {
     application {
         configure {
-            width = screenWidth
-            height = screenHeight
+//            width = screenWidth
+//            height = screenHeight
+//            sketchSize(Display.FULLSCREEN)
+            sketchSize(Display.MACBOOK_AIR)
         }
         program {
-//            extend(Screenshots()) {
-//                name = "screenshots/maurer_rose_${net.solvetheriddle.openrndr.aConfig.serial}.png"
-//            }
-            extend(ScreenRecorder()) {
-                name = "maurer_rose_vid_${aConfig.serial}"
+            if(showUi) { addUi() }
+            enableKeyboardControls()
+            extend(Screenshots()) {
+//                name = "screenshots/maurer_rose_${aConfig.serial}.png"
             }
+//            extend(ScreenRecorder()) {
+//                name = "maurer_rose_vid_${aConfig.serial}"
+//            }
 
-//            net.solvetheriddle.openrndr.addUi()
-//            net.solvetheriddle.openrndr.enableKeyboardControls()
+            // DRAW
+//            val image = BackgroundImage("data/images/otis_picture-background.png")
+//            draw(rose, image)
+            draw(rose)
 
-            val image = BackgroundImage("data/images/otis_picture-background.png")
-            draw(rose, image)
-//            draw(rose)
-
-            enableRoseAnimation()
+            // ANIMATE
+//            enableRoseAnimation()
         }
     }
 }
@@ -75,7 +85,7 @@ class BackgroundImage(imagePath: String) {
 
 private fun Program.enableRoseAnimation() {
     // config animation on key or at certain point of animation (frame)
-//    net.solvetheriddle.openrndr.animateOnKey("space") {
+//    animateOnKey("space") {
     extend {
         if (frameCount == 250) {
             val animationDuration = aConfig.animationDuration
@@ -129,7 +139,7 @@ private class MaurerRose() : Animatable() {
         val c = contour {
             val firstPoint = getPointForAngle(0)
             moveTo(firstPoint)
-            // config reveal net.solvetheriddle.openrndr.rose gradually
+            // config reveal rose gradually
             val numOfConnectedPoints = 360
 //            val numOfConnectedPoints = frameCount.coerceAtMost(360)
             for (angle in 0..numOfConnectedPoints) {
@@ -149,7 +159,7 @@ private class MaurerRose() : Animatable() {
             }
         }
         drawer.fill = null
-        // config fade out net.solvetheriddle.openrndr.rose
+        // config fade out rose
         drawer.stroke = ColorRGBa.WHITE.opacify(0.9)
 //        drawer.stroke = ColorRGBa.WHITE.opacify(1 - seconds/5)
         drawer.contour(c)
@@ -171,12 +181,12 @@ private fun Program.addUi() {
                 label = "n"
                 range = Range(0.0, 300.0)
                 value = initialN
-                precision = 4
+                precision = 6
                 events.valueChanged.listen {
                     rose.n = it.newValue
                 }
             }
-            slider {
+            dSlider = slider {
                 label = "d"
                 range = Range(0.0, 300.0)
                 value = initialD
@@ -185,7 +195,14 @@ private fun Program.addUi() {
                     rose.d = it.newValue
                 }
             }
-            // TODO add checkbox for net.solvetheriddle.openrndr.curvesEnabled
+            button {
+                fun getCurvesButtonLabel() = if (curvesEnabled) "Curves ON" else "Curves OFF"
+                label = getCurvesButtonLabel()
+                events.clicked.listen {
+                    curvesEnabled = !curvesEnabled
+                    label = getCurvesButtonLabel()
+                }
+            }
         }
     }
 }
@@ -199,36 +216,63 @@ private fun Program.animateOnKey(keyName: String, function: () -> Unit) {
 }
 
 private fun Program.enableKeyboardControls() {
-    if (::nSlider.isInitialized) {
-        keyboard.keyRepeat.listen {
-            when (it.name) {
-                "a" -> nSlider.value -= 1.0
-                "s" -> nSlider.value -= 0.1
-                "d" -> nSlider.value -= 0.01
-                "f" -> nSlider.value -= 0.001
-                "g" -> nSlider.value -= 0.0005
-                "h" -> nSlider.value += 0.0005
-                "j" -> nSlider.value += 0.001
-                "k" -> nSlider.value += 0.01
-                "l" -> nSlider.value += 0.1
-                ";" -> nSlider.value += 1.0
-            }
-        }
+    // Control N
+    val updateNSlider: (KeyEvent) -> Unit = { keyEvent -> keyEvent.mapAsdfKeyRow { nSlider.value += it } }
+    val setNValue: (KeyEvent) -> Unit = { keyEvent -> keyEvent.mapAsdfKeyRow { rose.n += it } }
+    updateValue(updateNSlider, setNValue)
+    // Control D
+    val updateDSlider: (KeyEvent) -> Unit = { keyEvent -> keyEvent.mapZxcvKeyRow { dSlider.value += it } }
+    val setDValue: (KeyEvent) -> Unit = { keyEvent -> keyEvent.mapZxcvKeyRow { rose.d += it } }
+    updateValue(updateDSlider, setDValue)
+}
+
+private fun Program.updateValue(updateSlider: (KeyEvent) -> Unit, setValue: (KeyEvent) -> Unit) {
+    if (showUi) {
+        keyboard.keyRepeat.listen(updateSlider)
+        keyboard.keyDown.listen(updateSlider)
     } else {
-        keyboard.keyRepeat.listen {
-            when (it.name) {
-                "a" -> rose.n -= 1.0
-                "s" -> rose.n -= 0.1
-                "d" -> rose.n -= 0.01
-                "f" -> rose.n -= 0.001
-                "g" -> rose.n -= 0.0005
-                "h" -> rose.n += 0.0005
-                "j" -> rose.n += 0.001
-                "k" -> rose.n += 0.01
-                "l" -> rose.n += 0.1
-                ";" -> rose.n += 1.0
-            }
-        }
+        keyboard.keyRepeat.listen(setValue)
+        keyboard.keyDown.listen(setValue)
+    }
+}
+
+private fun KeyEvent.mapAsdfKeyRow(setValue: (Double) -> Unit) {
+    when (name) {
+        "a" -> setValue(-1.0)
+        "s" -> setValue(-0.1)
+        "d" -> setValue(-0.01)
+        "f" -> setValue(-0.001)
+        "g" -> setValue(-0.0005)
+        "t" -> setValue(-0.0001)
+        "r" -> setValue(-0.00005)
+        "e" -> setValue(-0.00001)
+        "w" -> setValue(-0.000005)
+        "q" -> setValue(-0.000001)
+        "p" -> setValue(+0.000001)
+        "o" -> setValue(+0.000005)
+        "i" -> setValue(+0.00001)
+        "u" -> setValue(+0.00005)
+        "y" -> setValue(+0.0001)
+        "h" -> setValue(+0.0005)
+        "j" -> setValue(+0.001)
+        "k" -> setValue(+0.01)
+        "l" -> setValue(+0.1)
+        ";" -> setValue(+1.0)
+    }
+}
+
+private fun KeyEvent.mapZxcvKeyRow(setValue: (Double) -> Unit) {
+    when (name) {
+        "z" -> setValue(-1.0)
+        "x" -> setValue(-0.1)
+        "c" -> setValue(-0.01)
+        "v" -> setValue(-0.001)
+        "b" -> setValue(-0.0005)
+        "n" -> setValue(+0.0005)
+        "m" -> setValue(+0.001)
+        "," -> setValue(+0.01)
+        "." -> setValue(+0.1)
+        "/" -> setValue(+1.0)
     }
 }
 
