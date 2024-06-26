@@ -13,66 +13,109 @@ import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.*
 import org.openrndr.extensions.Screenshots
 import org.openrndr.extra.fx.color.LumaOpacity
+import org.openrndr.ffmpeg.ScreenRecorder
 import org.openrndr.math.Vector2
 import org.openrndr.math.asRadians
 import org.openrndr.panel.ControlManager
-import org.openrndr.panel.elements.Range
-import org.openrndr.panel.elements.Slider
-import org.openrndr.panel.elements.button
-import org.openrndr.panel.elements.slider
+import org.openrndr.panel.elements.*
 import org.openrndr.panel.layout
+import org.openrndr.shape.ContourBuilder
+import org.openrndr.shape.ShapeContour
 import org.openrndr.shape.contour
 import kotlin.math.*
 
+// sketch config
+private val useDisplay = Display.LG_ULTRAWIDE // Display.MACBOOK_AIR
+private const val showUi = true
+private const val enableScreenshots = false
+private const val enableScreenRecording = false
+
+// config background image
+@Suppress("RedundantNullableReturnType", "RedundantSuppression") // can be set to null
+private val backgroundImage: String? = null // "data/images/otis_picture-background.png"
+private var fadeOutBackground = false
+
 // config Manual or Pre-defined
 //private val aConfig = AnimationConfig(0.5, 1.0, 2.0, 10_000, Easing.SineInOut)
-private val aConfig = AnimationConfig.A6
+private val aConfig = AnimationConfig.Something2
 
-//private const val screenWidth = 896
-//private const val screenHeight = 896
-private const val screenWidth = 1163
-private const val screenHeight = 900
-
-// config
-private const val showUi = true
-//private const val screenWidth = 1748
-//private const val screenHeight = 1240
-//private const val radius = screenHeight / 2 * 0.95
-private const val radius = 896 / 2 * 0.95
 private val initialN = aConfig.n1
-private const val initialD = 3.1
+private const val initialD = 28.8 // For AnimationConfig.AX = 3.1
+private const val lineOpacity = 0.6
+private const val fillFactor = 0.95
 private const val closeShape = false
+private var curvesEnabled = false
+private const val revealRoseGradually = true
+private const val revealFrames = 2000.0
+private const val fadeOutRose = false
 
 private val rose = MaurerRose()
-private lateinit var nSlider: Slider
-private lateinit var dSlider: Slider
-private var curvesEnabled = false
 
 fun main() {
     application {
         configure {
-//            width = screenWidth
-//            height = screenHeight
-//            sketchSize(Display.FULLSCREEN)
-            sketchSize(Display.MACBOOK_AIR)
+            sketchSize(useDisplay)
         }
         program {
-            if(showUi) { addUi() }
+            addUiIfEnabled()
             enableKeyboardControls()
-            extend(Screenshots()) {
-//                name = "screenshots/maurer_rose_${aConfig.serial}.png"
-            }
-//            extend(ScreenRecorder()) {
-//                name = "maurer_rose_vid_${aConfig.serial}"
-//            }
+            setupScreenshotsIfEnabled()
+            setupScreenRecordingIfEnabled()
 
             // DRAW
-//            val image = BackgroundImage("data/images/otis_picture-background.png")
-//            draw(rose, image)
-            draw(rose)
+            draw(rose, backgroundImage)
 
             // ANIMATE
-//            enableRoseAnimation()
+            enableRoseAnimation()
+        }
+    }
+}
+
+private fun Program.enableRoseAnimation() {
+    // config animation on key or at certain point of animation (frame)
+    animateOnKey("space") {
+        extend {
+            if (frameCount == 250) {
+                val animationDuration = aConfig.animationDuration
+                val animationEasing = aConfig.animationEasing
+                rose.animateN(aConfig.n2, animationDuration, easing = animationEasing)
+                rose.animateN(aConfig.n3, animationDuration, animationDuration, animationEasing)
+                rose.animateN(aConfig.n2, animationDuration, 2 * animationDuration, animationEasing)
+                rose.animateN(aConfig.n1, animationDuration, 3 * animationDuration, animationEasing)
+            }
+        }
+    }
+}
+
+private fun Program.draw(rose: MaurerRose, imagePath: String?) {
+    extend {
+        drawer.clear(ColorRGBa.BLACK)
+        drawBackgroundIfSet(imagePath)
+        drawer.translate(drawer.bounds.center)
+        drawer.translate(0.0, 6.0)
+        rose.draw()
+        rose.updateAnimation()
+    }
+}
+
+private fun Program.drawBackgroundIfSet(imagePath: String?) {
+    if (imagePath != null) {
+        val image = BackgroundImage(imagePath)
+        val time = if (fadeOutBackground) frameCount / 30.0 / 2 else 0.0
+        if (time < 3 * PI / 2) {
+            // Apply filter
+            with(image.filter) {
+                backgroundOpacity = 1.0
+                foregroundOpacity = cos(time)
+                apply(image.image, image.filtered)
+            }
+            drawer.image(image.filtered, 0.0, 0.0, width = 1163.0, height = 900.0)
+            // Fade out into black
+            if (time > PI) {
+                val opacityFactor = sin(time - PI)
+                drawer.fill = ColorRGBa.BLACK.opacify(opacityFactor)
+                drawer.contour(drawer.bounds.contour)
+            }
         }
     }
 }
@@ -83,48 +126,7 @@ class BackgroundImage(imagePath: String) {
     val filtered = colorBuffer(image.width, image.height)
 }
 
-private fun Program.enableRoseAnimation() {
-    // config animation on key or at certain point of animation (frame)
-//    animateOnKey("space") {
-    extend {
-        if (frameCount == 250) {
-            val animationDuration = aConfig.animationDuration
-            val animationEasing = aConfig.animationEasing
-            rose.animateN(aConfig.n2, animationDuration, easing = animationEasing)
-            rose.animateN(aConfig.n3, animationDuration, animationDuration, animationEasing)
-            rose.animateN(aConfig.n2, animationDuration, 2 * animationDuration, animationEasing)
-            rose.animateN(aConfig.n1, animationDuration, 3 * animationDuration, animationEasing)
-        }
-    }
-}
-
-private fun Program.draw(rose: MaurerRose, image: BackgroundImage? = null) {
-    extend {
-        drawer.clear(ColorRGBa.BLACK)
-        // config animate the background
-        val time = frameCount/30.0 / 2
-//        val time = 0.0
-        if (image != null && time < 3 * PI / 2) {
-            with(image.filter) {
-                backgroundOpacity = 1.0
-                foregroundOpacity = cos(time)
-                apply(image.image, image.filtered)
-            }
-            drawer.image(image.filtered, 0.0, 0.0, width = 1163.0, height = 900.0)
-            if (time > PI) {
-                val opacityFactor = sin(time - PI)
-                drawer.fill = ColorRGBa.BLACK.opacify(opacityFactor)
-                drawer.contour(drawer.bounds.contour)
-            }
-        }
-        drawer.translate(drawer.bounds.center)
-        drawer.translate(0.0, 6.0)
-        rose.draw()
-        rose.updateAnimation()
-    }
-}
-
-private class MaurerRose() : Animatable() {
+private class MaurerRose : Animatable() {
 
     var n = initialN // number of petals
     var d = initialD // angle factor
@@ -136,36 +138,33 @@ private class MaurerRose() : Animatable() {
 
     context(Program)
     fun draw() {
-        val c = contour {
-            val firstPoint = getPointForAngle(0)
-            moveTo(firstPoint)
-            // config reveal rose gradually
-            val numOfConnectedPoints = 360
-//            val numOfConnectedPoints = frameCount.coerceAtMost(360)
-            for (angle in 0..numOfConnectedPoints) {
-                val nextPoint = getPointForAngle(angle)
-                if (curvesEnabled) {
-                    continueTo(nextPoint)
-                } else {
-                    lineTo(nextPoint)
-                }
-            }
-            if (closeShape) {
-                if (curvesEnabled) {
-                    continueTo(firstPoint)
-                } else {
-                    lineTo(firstPoint)
-                }
-            }
-        }
         drawer.fill = null
-        // config fade out rose
-        drawer.stroke = ColorRGBa.WHITE.opacify(0.9)
-//        drawer.stroke = ColorRGBa.WHITE.opacify(1 - seconds/5)
-        drawer.contour(c)
+        drawer.stroke = if (fadeOutRose) ColorRGBa.WHITE.opacify(1 - seconds/5) else ColorRGBa.WHITE.opacify(lineOpacity)
+        drawer.contour(shapeContour())
     }
 
-    private fun getPointForAngle(angle: Int): Vector2 {
+    private fun Program.shapeContour(): ShapeContour {
+        val c = contour {
+            val radius = drawer.height / 2.0 * fillFactor
+            val firstPoint = getPointForAngle(0, radius)
+            moveTo(firstPoint)
+            val numOfConnectedPoints = 360
+            for (angle in 0..numOfConnectedPoints) {
+                val nextPoint = getPointForAngle(angle, radius)
+                if (curvesEnabled) continueTo(nextPoint) else lineTo(nextPoint)
+            }
+            closeShapeIfEnabled(firstPoint)
+        }
+        return if (revealRoseGradually) c.sub(0.0, min(frameCount / revealFrames, 1.0)) else c
+    }
+
+    private fun ContourBuilder.closeShapeIfEnabled(firstPoint: Vector2) {
+        if (closeShape) {
+            if (curvesEnabled) continueTo(firstPoint) else lineTo(firstPoint)
+        }
+    }
+
+    private fun getPointForAngle(angle: Int, radius: Double): Vector2 {
         val k = angle * d.asRadians
         val r = radius * sin(n * k)
         val x = r * cos(k)
@@ -174,35 +173,50 @@ private class MaurerRose() : Animatable() {
     }
 }
 
-private fun Program.addUi() {
-    extend(ControlManager()) {
+private lateinit var nSlider: Slider
+private lateinit var dSlider: Slider
+
+private fun Program.addUiIfEnabled() {
+    if (showUi) extend(ControlManager()) {
         layout {
-            nSlider = slider {
-                label = "n"
-                range = Range(0.0, 300.0)
-                value = initialN
-                precision = 6
-                events.valueChanged.listen {
-                    rose.n = it.newValue
-                }
-            }
-            dSlider = slider {
-                label = "d"
-                range = Range(0.0, 300.0)
-                value = initialD
-                precision = 1
-                events.valueChanged.listen {
-                    rose.d = it.newValue
-                }
-            }
-            button {
-                fun getCurvesButtonLabel() = if (curvesEnabled) "Curves ON" else "Curves OFF"
-                label = getCurvesButtonLabel()
-                events.clicked.listen {
-                    curvesEnabled = !curvesEnabled
-                    label = getCurvesButtonLabel()
-                }
-            }
+            nSlider()
+            dSlider()
+            enableCurvesButton()
+        }
+    }
+}
+
+private fun Body.nSlider() {
+    nSlider = slider {
+        label = "n"
+        range = Range(0.0, 300.0)
+        value = initialN
+        precision = 6
+        events.valueChanged.listen {
+            rose.n = it.newValue
+        }
+    }
+}
+
+private fun Body.dSlider() {
+    dSlider = slider {
+        label = "d"
+        range = Range(0.0, 300.0)
+        value = initialD
+        precision = 1
+        events.valueChanged.listen {
+            rose.d = it.newValue
+        }
+    }
+}
+
+private fun Body.enableCurvesButton() {
+    button {
+        fun getCurvesButtonLabel() = if (curvesEnabled) "Curves ON" else "Curves OFF"
+        label = getCurvesButtonLabel()
+        events.clicked.listen {
+            curvesEnabled = !curvesEnabled
+            label = getCurvesButtonLabel()
         }
     }
 }
@@ -233,6 +247,22 @@ private fun Program.updateValue(updateSlider: (KeyEvent) -> Unit, setValue: (Key
     } else {
         keyboard.keyRepeat.listen(setValue)
         keyboard.keyDown.listen(setValue)
+    }
+}
+
+private fun Program.setupScreenRecordingIfEnabled() {
+    if (enableScreenRecording) {
+        extend(ScreenRecorder()) {
+            name = "maurer_rose_vid_${aConfig.serial}"
+        }
+    }
+}
+
+private fun Program.setupScreenshotsIfEnabled() {
+    if (enableScreenshots) {
+        extend(Screenshots()) {
+            name = "screenshots/maurer_rose_${aConfig.serial}.png"
+        }
     }
 }
 
@@ -353,5 +383,22 @@ private open class AnimationConfig(
         animationDuration = 20_000L,
         animationEasing = Easing.CubicInOut,
     )
-}
 
+    object Something1 : AnimationConfig(
+        serial = 100,
+        n1 = 142.821594,
+        n2 = 142.826144,
+        n3 = 142.828444,
+        animationDuration = 20_000L,
+        animationEasing = Easing.CubicInOut,
+    )
+
+    object Something2 : AnimationConfig(
+        serial = 100,
+        n1 = 201.132662,
+        n2 = 142.826144,
+        n3 = 142.828444,
+        animationDuration = 20_000L,
+        animationEasing = Easing.CubicInOut,
+    )
+}
