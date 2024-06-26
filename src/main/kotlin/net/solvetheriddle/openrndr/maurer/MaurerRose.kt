@@ -37,7 +37,7 @@ private var fadeOutBackground = false
 
 // config Manual or Pre-defined
 //private val aConfig = AnimationConfig(0.5, 1.0, 2.0, 10_000, Easing.SineInOut)
-private val aConfig = AnimationConfig.Something2
+private val aConfig = AnimationConfig.Something1
 
 private val initialN = aConfig.n1
 private const val initialD = 28.8 // For AnimationConfig.AX = 3.1
@@ -67,22 +67,6 @@ fun main() {
 
             // ANIMATE
             enableRoseAnimation()
-        }
-    }
-}
-
-private fun Program.enableRoseAnimation() {
-    // config animation on key or at certain point of animation (frame)
-    animateOnKey("space") {
-        extend {
-            if (frameCount == 250) {
-                val animationDuration = aConfig.animationDuration
-                val animationEasing = aConfig.animationEasing
-                rose.animateN(aConfig.n2, animationDuration, easing = animationEasing)
-                rose.animateN(aConfig.n3, animationDuration, animationDuration, animationEasing)
-                rose.animateN(aConfig.n2, animationDuration, 2 * animationDuration, animationEasing)
-                rose.animateN(aConfig.n1, animationDuration, 3 * animationDuration, animationEasing)
-            }
         }
     }
 }
@@ -139,7 +123,7 @@ private class MaurerRose : Animatable() {
     context(Program)
     fun draw() {
         drawer.fill = null
-        drawer.stroke = if (fadeOutRose) ColorRGBa.WHITE.opacify(1 - seconds/5) else ColorRGBa.WHITE.opacify(lineOpacity)
+        drawer.stroke = if (fadeOutRose) ColorRGBa.WHITE.opacify(1 - seconds / 5) else ColorRGBa.WHITE.opacify(lineOpacity)
         drawer.contour(shapeContour())
     }
 
@@ -170,6 +154,26 @@ private class MaurerRose : Animatable() {
         val x = r * cos(k)
         val y = r * sin(k)
         return Vector2(x, y)
+    }
+}
+
+private fun Program.enableRoseAnimation() {
+    // config animation on key or at certain point of animation (frame)
+    animateOnKey("space") {
+        val animationDuration = aConfig.animationDuration
+        val animationEasing = aConfig.animationEasing
+        rose.animateN(aConfig.n2, animationDuration, easing = animationEasing)
+        rose.animateN(aConfig.n3, animationDuration, animationDuration, animationEasing)
+        rose.animateN(aConfig.n2, animationDuration, 2 * animationDuration, animationEasing)
+        rose.animateN(aConfig.n1, animationDuration, 3 * animationDuration, animationEasing)
+    }
+}
+
+private fun Program.animateOnKey(keyName: String, function: () -> Unit) {
+    keyboard.keyUp.listen {
+        if (it.name == keyName) {
+            function()
+        }
     }
 }
 
@@ -217,14 +221,6 @@ private fun Body.enableCurvesButton() {
         events.clicked.listen {
             curvesEnabled = !curvesEnabled
             label = getCurvesButtonLabel()
-        }
-    }
-}
-
-private fun Program.animateOnKey(keyName: String, function: () -> Unit) {
-    keyboard.keyUp.listen {
-        if (it.name == keyName) {
-            function()
         }
     }
 }
