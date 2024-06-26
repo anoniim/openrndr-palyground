@@ -87,20 +87,26 @@ private fun Program.drawBackgroundIfSet(imagePath: String?) {
         val image = BackgroundImage(imagePath)
         val time = if (fadeOutBackground) frameCount / 30.0 / 2 else 0.0
         if (time < 3 * PI / 2) {
-            // Apply filter
-            with(image.filter) {
-                backgroundOpacity = 1.0
-                foregroundOpacity = cos(time)
-                apply(image.image, image.filtered)
-            }
+            applyFilter(image, time)
             drawer.image(image.filtered, 0.0, 0.0, width = 1163.0, height = 900.0)
-            // Fade out into black
-            if (time > PI) {
-                val opacityFactor = sin(time - PI)
-                drawer.fill = ColorRGBa.BLACK.opacify(opacityFactor)
-                drawer.contour(drawer.bounds.contour)
-            }
+            fadeOutIntoBlack(time)
         }
+    }
+}
+
+private fun applyFilter(image: BackgroundImage, time: Double) {
+    with(image.filter) {
+        backgroundOpacity = 1.0
+        foregroundOpacity = cos(time)
+        apply(image.image, image.filtered)
+    }
+}
+
+private fun Program.fadeOutIntoBlack(time: Double) {
+    if (time > PI) {
+        val opacityFactor = sin(time - PI)
+        drawer.fill = ColorRGBa.BLACK.opacify(opacityFactor)
+        drawer.contour(drawer.bounds.contour)
     }
 }
 
