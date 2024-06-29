@@ -28,7 +28,7 @@ import java.io.File
 import kotlin.math.*
 
 // sketch config
-private val useDisplay = Display.LG_ULTRAWIDE // Display.MACBOOK_AIR
+private val useDisplay = Display.MACBOOK_AIR // Display.MACBOOK_AIR
 private const val showUi = true
 private const val enableScreenshots = false
 private const val enableScreenRecording = false
@@ -48,12 +48,12 @@ private const val lineOpacity = 0.6
 private const val fillFactor = 0.95
 private const val closeShape = false
 private var curvesEnabled = false
-private const val revealRoseGradually = true
+private const val revealRoseGradually = false
 private const val revealFrames = 2000.0
 private const val fadeOutRose = false
 
 private val rose = MaurerRose()
-private val store = File("data/maurer_roses.txt")
+private val seedStore = File("data/maurer_roses_store.txt").apply { createNewFile() }
 private lateinit var smallFont: FontImageMap
 private lateinit var bigFont: FontImageMap
 
@@ -74,7 +74,7 @@ fun main() {
             // ANIMATE
             enableRoseAnimation()
 
-            addCheckpointView()
+            enableCheckpointView()
         }
     }
 }
@@ -243,25 +243,33 @@ private fun Body.addCurvesButton() {
 }
 
 private var lastSelectedSlot = -1
+private val seeds = loadSeeds()
+private fun loadSeeds(): MutableList<RoseSeed> {
+    val loadedSeeds = seedStore.readLines().map {
+        val (nValue, dValue) = it.split(",")
+        RoseSeed(nValue = nValue.toDouble(), dValue = dValue.toDouble())
+    }.toMutableList()
+    return if (loadedSeeds.size < 9) MutableList(9) { RoseSeed(nValue = 0.0, dValue = 0.0) } else loadedSeeds
+}
 
-context(Program)
-private fun addCheckpointView() {
+private fun Program.enableCheckpointView() {
     smallFont = loadFont("data/fonts/Rowdies-Light.ttf", 12.0)
     bigFont = loadFont("data/fonts/Rowdies-Bold.ttf", 40.0)
-    mapNumberKeys { slot ->
+    onNumberKeys { slot ->
         lastSelectedSlot = slot
+        val seed = RoseSeed(nValue = rose.n, dValue = rose.d)
+        seeds[slot] = seed
+        seedStore.put(seeds)
     }
     extend {
-        drawCheckPoint(slot = 0, nValue = rose.n, dValue = rose.d)
-        drawCheckPoint(slot = 1, nValue = rose.n, dValue = rose.d)
-        drawCheckPoint(slot = 2, nValue = rose.n, dValue = rose.d)
-        drawCheckPoint(slot = 3, nValue = rose.n, dValue = rose.d)
-        drawCheckPoint(slot = 4, nValue = rose.n, dValue = rose.d)
-        drawCheckPoint(slot = 5, nValue = rose.n, dValue = rose.d)
-        drawCheckPoint(slot = 6, nValue = rose.n, dValue = rose.d)
-        drawCheckPoint(slot = 7, nValue = rose.n, dValue = rose.d)
-        drawCheckPoint(slot = 8, nValue = rose.n, dValue = rose.d)
+        seeds.forEachIndexed { index, seed ->
+            drawCheckPoint(index, seed.nValue, seed.dValue)
+        }
     }
+}
+
+private fun File.put(seeds: List<RoseSeed>) {
+    writeText(seeds.joinToString("\n") { "${it.nValue},${it.dValue}" })
 }
 
 private fun Program.drawCheckPoint(slot: Int, nValue: Double, dValue: Double) {
@@ -353,11 +361,16 @@ private fun KeyEvent.mapZxcvKeyRow(setValue: (Double) -> Unit) {
 }
 
 context(Program)
-private fun mapNumberKeys(storeCheckpoint: (Int) -> Unit) {
+private fun onNumberKeys(storeCheckpoint: (Int) -> Unit) {
     keyboard.keyDown.listen {
         if (it.name in "123456789") storeCheckpoint(it.name.toInt() - 1)
     }
 }
+
+private data class RoseSeed(
+    val nValue: Double,
+    val dValue: Double
+)
 
 private open class AnimationConfig(
     val serial: Int,
