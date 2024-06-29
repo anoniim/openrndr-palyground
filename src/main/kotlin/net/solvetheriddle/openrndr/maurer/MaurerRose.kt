@@ -12,6 +12,8 @@ import org.openrndr.application
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.*
 import org.openrndr.extensions.Screenshots
+import org.openrndr.extra.color.presets.DARK_GREY
+import org.openrndr.extra.color.presets.GREY
 import org.openrndr.extra.fx.color.LumaOpacity
 import org.openrndr.ffmpeg.ScreenRecorder
 import org.openrndr.math.Vector2
@@ -22,6 +24,7 @@ import org.openrndr.panel.layout
 import org.openrndr.shape.ContourBuilder
 import org.openrndr.shape.ShapeContour
 import org.openrndr.shape.contour
+import java.io.File
 import kotlin.math.*
 
 // sketch config
@@ -50,6 +53,9 @@ private const val revealFrames = 2000.0
 private const val fadeOutRose = false
 
 private val rose = MaurerRose()
+private val store = File("data/maurer_roses.txt")
+private lateinit var smallFont: FontImageMap
+private lateinit var bigFont: FontImageMap
 
 fun main() {
     application {
@@ -67,6 +73,8 @@ fun main() {
 
             // ANIMATE
             enableRoseAnimation()
+
+            addCheckpointView()
         }
     }
 }
@@ -79,6 +87,8 @@ private fun Program.draw(rose: MaurerRose, imagePath: String?) {
         drawer.translate(0.0, 6.0)
         rose.draw()
         rose.updateAnimation()
+        drawer.translate(0.0, -6.0)
+        drawer.translate(-drawer.bounds.center)
     }
 }
 
@@ -187,16 +197,17 @@ private lateinit var nSlider: Slider
 private lateinit var dSlider: Slider
 
 private fun Program.addUiIfEnabled() {
+
     if (showUi) extend(ControlManager()) {
         layout {
-            nSlider()
-            dSlider()
-            enableCurvesButton()
+            addNSlider()
+            addDSlider()
+            addCurvesButton()
         }
     }
 }
 
-private fun Body.nSlider() {
+private fun Body.addNSlider() {
     nSlider = slider {
         label = "n"
         range = Range(0.0, 300.0)
@@ -208,7 +219,7 @@ private fun Body.nSlider() {
     }
 }
 
-private fun Body.dSlider() {
+private fun Body.addDSlider() {
     dSlider = slider {
         label = "d"
         range = Range(0.0, 300.0)
@@ -220,7 +231,7 @@ private fun Body.dSlider() {
     }
 }
 
-private fun Body.enableCurvesButton() {
+private fun Body.addCurvesButton() {
     button {
         fun getCurvesButtonLabel() = if (curvesEnabled) "Curves ON" else "Curves OFF"
         label = getCurvesButtonLabel()
@@ -229,6 +240,39 @@ private fun Body.enableCurvesButton() {
             label = getCurvesButtonLabel()
         }
     }
+}
+
+private var lastSelectedSlot = -1
+
+context(Program)
+private fun addCheckpointView() {
+    smallFont = loadFont("data/fonts/Rowdies-Light.ttf", 12.0)
+    bigFont = loadFont("data/fonts/Rowdies-Bold.ttf", 40.0)
+    mapNumberKeys { slot ->
+        lastSelectedSlot = slot
+    }
+    extend {
+        drawCheckPoint(slot = 0, nValue = rose.n, dValue = rose.d)
+        drawCheckPoint(slot = 1, nValue = rose.n, dValue = rose.d)
+        drawCheckPoint(slot = 2, nValue = rose.n, dValue = rose.d)
+        drawCheckPoint(slot = 3, nValue = rose.n, dValue = rose.d)
+        drawCheckPoint(slot = 4, nValue = rose.n, dValue = rose.d)
+        drawCheckPoint(slot = 5, nValue = rose.n, dValue = rose.d)
+        drawCheckPoint(slot = 6, nValue = rose.n, dValue = rose.d)
+        drawCheckPoint(slot = 7, nValue = rose.n, dValue = rose.d)
+        drawCheckPoint(slot = 8, nValue = rose.n, dValue = rose.d)
+    }
+}
+
+private fun Program.drawCheckPoint(slot: Int, nValue: Double, dValue: Double) {
+    drawer.translate(10.0, 160.0 + slot * 40.0)
+    drawer.fill = if (lastSelectedSlot == slot) ColorRGBa.DARK_GREY else ColorRGBa.GREY
+    drawer.fontMap = bigFont
+    drawer.text((slot + 1).toString(), 0.0, 0.0)
+    drawer.fontMap = smallFont
+    drawer.text("N: $nValue", 28.0, -15.0)
+    drawer.text("D: $dValue", 28.0, 0.0)
+    drawer.translate(-10.0, -(160.0 + slot * 40.0))
 }
 
 private fun Program.enableKeyboardControls() {
@@ -305,6 +349,13 @@ private fun KeyEvent.mapZxcvKeyRow(setValue: (Double) -> Unit) {
         "," -> setValue(+0.01)
         "." -> setValue(+0.1)
         "/" -> setValue(+1.0)
+    }
+}
+
+context(Program)
+private fun mapNumberKeys(storeCheckpoint: (Int) -> Unit) {
+    keyboard.keyDown.listen {
+        if (it.name in "123456789") storeCheckpoint(it.name.toInt() - 1)
     }
 }
 
