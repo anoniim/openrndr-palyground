@@ -224,7 +224,7 @@ private fun Body.addDSlider() {
         label = "d"
         range = Range(0.0, 300.0)
         value = initialD
-        precision = 1
+        precision = 6
         events.valueChanged.listen {
             rose.d = it.newValue
         }
@@ -347,16 +347,16 @@ private fun KeyEvent.mapAsdfKeyRow(setValue: (Double) -> Unit) {
 
 private fun KeyEvent.mapZxcvKeyRow(setValue: (Double) -> Unit) {
     when (name) {
-        "z" -> setValue(-1.0)
-        "x" -> setValue(-0.1)
-        "c" -> setValue(-0.01)
-        "v" -> setValue(-0.001)
-        "b" -> setValue(-0.0005)
-        "n" -> setValue(+0.0005)
-        "m" -> setValue(+0.001)
-        "," -> setValue(+0.01)
-        "." -> setValue(+0.1)
-        "/" -> setValue(+1.0)
+        "z" -> setValue(-0.01)
+        "x" -> setValue(-0.001)
+        "c" -> setValue(-0.0001)
+        "v" -> setValue(-0.00005)
+        "b" -> setValue(-0.00001)
+        "n" -> setValue(+0.00001)
+        "m" -> setValue(+0.00005)
+        "," -> setValue(+0.0001)
+        "." -> setValue(+0.001)
+        "/" -> setValue(+0.01)
     }
 }
 
