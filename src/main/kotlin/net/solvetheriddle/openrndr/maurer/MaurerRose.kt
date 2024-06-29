@@ -48,15 +48,28 @@ private const val lineOpacity = 0.6
 private const val fillFactor = 0.95
 private const val closeShape = false
 private var curvesEnabled = false
-private const val revealRoseGradually = false
-private const val revealFrames = 2000.0
-private const val fadeOutRose = false
+private const val revealDuration = 5.0
+private const val fadeOutDuration = 3.0 // seconds
 
 private val rose = MaurerRose()
 private val seedStore = File("data/maurer_roses_store.txt").apply { createNewFile() }
 private lateinit var smallFont: FontImageMap
 private lateinit var bigFont: FontImageMap
 
+/**
+ * This program draws and animates Maurer Rose - https://en.wikipedia.org/wiki/Maurer_rose.
+ *
+ * It allows to control the number of petals (N) and the angle factor (D) by sliders and keyboard.
+ *  - Use A S D F G T R E W Q keys to decrease N
+ *  - Use ; L K J H Y U I O P keys to increase N
+ *  - Use Z X C V B keys to decrease D
+ *  - Use N M , . / keys to increase D
+ *
+ *  Press ESCAPE to fade out the rose
+ *  Press ENTER to fade in the rose
+ *  Press RIGHT SHIFT to reveal the rose gradually
+ */
+@Suppress("GrazieInspection")
 fun main() {
     application {
         configure {
@@ -139,7 +152,11 @@ private class MaurerRose : Animatable() {
     context(Program)
     fun draw() {
         drawer.fill = null
-        drawer.stroke = if (fadeOutRose) ColorRGBa.WHITE.opacify(1 - seconds / 5) else ColorRGBa.WHITE.opacify(lineOpacity)
+        drawer.stroke = when (visibility) {
+            Visibility.VISIBLE -> ColorRGBa.WHITE.opacify(lineOpacity)
+            Visibility.FADE_OUT -> ColorRGBa.WHITE.opacify(lineOpacity - (seconds - visibilityChangeTime) / fadeOutDuration)
+            Visibility.FADE_IN -> ColorRGBa.WHITE.opacify(min(lineOpacity, (seconds - visibilityChangeTime) / fadeOutDuration))
+        }
         drawer.contour(shapeContour())
     }
 
@@ -155,7 +172,7 @@ private class MaurerRose : Animatable() {
             }
             closeShapeIfEnabled(firstPoint)
         }
-        return if (revealRoseGradually) c.sub(0.0, min(frameCount / revealFrames, 1.0)) else c
+        return if (revealRoseGradually) c.sub(0.0, min((seconds - revealChangeTime) / revealDuration, 1.0)) else c
     }
 
     private fun ContourBuilder.closeShapeIfEnabled(firstPoint: Vector2) {
@@ -173,9 +190,17 @@ private class MaurerRose : Animatable() {
     }
 }
 
+private enum class Visibility {
+    VISIBLE, FADE_OUT, FADE_IN
+}
+
+private var visibility = Visibility.VISIBLE
+private var visibilityChangeTime = 0.0
+private var revealRoseGradually = false
+private var revealChangeTime = 0.0
+
 private fun Program.enableRoseAnimation() {
-    // config animation on key or at certain point of animation (frame)
-    animateOnKey("space") {
+    executeOnKey("space") {
         val animationDuration = aConfig.animationDuration
         val animationEasing = aConfig.animationEasing
         rose.animateN(aConfig.n2, animationDuration, easing = animationEasing)
@@ -183,9 +208,24 @@ private fun Program.enableRoseAnimation() {
         rose.animateN(aConfig.n2, animationDuration, 2 * animationDuration, animationEasing)
         rose.animateN(aConfig.n1, animationDuration, 3 * animationDuration, animationEasing)
     }
+    executeOnKey("escape") {
+        visibility = Visibility.FADE_OUT
+        visibilityChangeTime = seconds
+        revealRoseGradually = false
+    }
+    executeOnKey("enter") {
+        visibility = Visibility.FADE_IN
+        visibilityChangeTime = seconds
+
+    }
+    executeOnKey("right-shift") {
+        visibility = Visibility.VISIBLE
+        revealRoseGradually = true
+        revealChangeTime = seconds
+    }
 }
 
-private fun Program.animateOnKey(keyName: String, function: () -> Unit) {
+private fun Program.executeOnKey(keyName: String, function: () -> Unit) {
     keyboard.keyUp.listen {
         if (it.name == keyName) {
             function()
