@@ -153,9 +153,9 @@ private class MaurerRose : Animatable() {
     fun draw() {
         drawer.fill = null
         drawer.stroke = when (visibility) {
-            Visibility.VISIBLE -> ColorRGBa.WHITE.opacify(lineOpacity)
             Visibility.FADE_OUT -> ColorRGBa.WHITE.opacify(lineOpacity - (seconds - visibilityChangeTime) / fadeOutDuration)
             Visibility.FADE_IN -> ColorRGBa.WHITE.opacify(min(lineOpacity, (seconds - visibilityChangeTime) / fadeOutDuration))
+            else -> ColorRGBa.WHITE.opacify(lineOpacity)
         }
         drawer.contour(shapeContour())
     }
@@ -172,7 +172,11 @@ private class MaurerRose : Animatable() {
             }
             closeShapeIfEnabled(firstPoint)
         }
-        return if (revealRoseGradually) c.sub(0.0, min((seconds - revealChangeTime) / revealDuration, 1.0)) else c
+        return when (reveal) {
+            Reveal.GRADUAL_IN -> c.sub(0.0, min((seconds - revealChangeTime) / revealDuration, 1.0))
+            Reveal.GRADUAL_OUT -> c.sub(1.0, max((seconds - revealChangeTime) / revealDuration, 0.0))
+            else -> c
+        }
     }
 
     private fun ContourBuilder.closeShapeIfEnabled(firstPoint: Vector2) {
@@ -193,10 +197,13 @@ private class MaurerRose : Animatable() {
 private enum class Visibility {
     VISIBLE, FADE_OUT, FADE_IN
 }
+private enum class Reveal {
+    REVEALED, GRADUAL_IN, GRADUAL_OUT
+}
 
 private var visibility = Visibility.VISIBLE
+private var reveal = Reveal.REVEALED
 private var visibilityChangeTime = 0.0
-private var revealRoseGradually = false
 private var revealChangeTime = 0.0
 
 private fun Program.enableRoseAnimation() {
@@ -211,16 +218,20 @@ private fun Program.enableRoseAnimation() {
     executeOnKey("escape") {
         visibility = Visibility.FADE_OUT
         visibilityChangeTime = seconds
-        revealRoseGradually = false
     }
     executeOnKey("enter") {
         visibility = Visibility.FADE_IN
+        reveal = Reveal.REVEALED
         visibilityChangeTime = seconds
 
     }
     executeOnKey("right-shift") {
+        reveal = Reveal.GRADUAL_IN
         visibility = Visibility.VISIBLE
-        revealRoseGradually = true
+        revealChangeTime = seconds
+    }
+    executeOnKey("backspace") {
+        reveal = Reveal.GRADUAL_OUT
         revealChangeTime = seconds
     }
 }
