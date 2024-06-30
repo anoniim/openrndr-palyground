@@ -4,12 +4,9 @@ package net.solvetheriddle.openrndr.maurer
 
 import net.solvetheriddle.openrndr.Display
 import net.solvetheriddle.openrndr.sketchSize
-import org.openrndr.KeyEvent
-import org.openrndr.MouseButton
-import org.openrndr.Program
+import org.openrndr.*
 import org.openrndr.animatable.Animatable
 import org.openrndr.animatable.easing.Easing
-import org.openrndr.application
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.*
 import org.openrndr.extensions.Screenshots
@@ -162,6 +159,11 @@ private class MaurerRose : Animatable() {
     var d: Double by Delegates.observable(initialD) { _, _, newValue ->
         if (::dSlider.isInitialized) dSlider.value = newValue
         if (::screenshots.isInitialized) screenshots.updateName(d = newValue)
+    }
+
+    fun set(nValue: Double, dValue: Double) {
+        n = nValue
+        d = dValue
     }
 
     fun animate(targetNValue: Double, targetDValue: Double, duration: Long, predelay: Long = 0, easing: Easing = Easing.CubicInOut) {
@@ -360,7 +362,9 @@ private lateinit var bigFont: FontImageMap
 private fun Program.enableSeedView() {
     onFKeys { group ->
         selectedSeedGroup = group
+        selectedSeed = 0
         seeds = seedBank[selectedSeedGroup].toMutableList()
+        rose.set(seeds[0].nValue, seeds[0].dValue)
     }
     executeOnKey("§") { editMode = !editMode }
     onNumberKeys { slot -> if (editMode) writeSeed(slot) else readSeed(slot) }
@@ -378,10 +382,7 @@ private fun Program.enableSeedView() {
 
 fun readSeed(slot: Int) {
     selectedSeed = slot
-    seeds[slot].let {
-        rose.n = it.nValue
-        rose.d = it.dValue
-    }
+    rose.set(seeds[slot].nValue, seeds[slot].dValue)
 }
 
 private fun writeSeed(slot: Int) {
