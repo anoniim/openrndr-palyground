@@ -10,7 +10,10 @@ import org.openrndr.animatable.Animatable
 import org.openrndr.animatable.easing.Easing
 import org.openrndr.application
 import org.openrndr.color.ColorRGBa
-import org.openrndr.draw.*
+import org.openrndr.draw.FontImageMap
+import org.openrndr.draw.colorBuffer
+import org.openrndr.draw.loadFont
+import org.openrndr.draw.loadImage
 import org.openrndr.extensions.Screenshots
 import org.openrndr.extra.color.presets.DARK_GREY
 import org.openrndr.extra.color.presets.GREY
@@ -26,6 +29,7 @@ import org.openrndr.shape.ShapeContour
 import org.openrndr.shape.contour
 import java.io.File
 import kotlin.math.*
+import kotlin.properties.Delegates
 
 // sketch config
 private val useDisplay = Display.LG_ULTRAWIDE // Display.MACBOOK_AIR
@@ -48,8 +52,9 @@ private const val lineOpacity = 0.6
 private const val fillFactor = 0.95
 private const val closeShape = false
 private var curvesEnabled = false
-private const val revealDuration = 5.0
+private const val revealDuration = 5.0 // seconds
 private const val fadeOutDuration = 3.0 // seconds
+private const val animationDuration = 5_000L // milliseconds
 
 private val rose = MaurerRose()
 private val seedStore = File("data/maurer_roses_store.txt").apply { createNewFile() }
@@ -60,10 +65,10 @@ private lateinit var bigFont: FontImageMap
  * This program draws and animates Maurer Rose - https://en.wikipedia.org/wiki/Maurer_rose.
  *
  * Control the number of petals (N) and the angle factor (D) by sliders and keyboard:
- *  - Use A S D F G T R E W Q keys to decrease N
- *  - Use ; L K J H Y U I O P keys to increase N
- *  - Use Z X C V B keys to decrease D
- *  - Use N M , . / keys to increase D
+ *  - Press A S D F G T R E W Q keys to decrease N
+ *  - Press ; L K J H Y U I O P keys to increase N
+ *  - Press Z X C V B keys to decrease D
+ *  - Press N M , . / keys to increase D
  *
  *  Control visibility and reveal of the rose:
  *  - Press ESCAPE to fade out the rose
@@ -73,6 +78,11 @@ private lateinit var bigFont: FontImageMap
  *  Save and load seeds:
  *  - Press § to toggle edit mode for seeds
  *  - Press 1-9 to read or write seeds
+ *
+ *  Animate between pre-defined seeds:
+ *  - Press LEFT ALT/CMD to animate to the previous seed
+ *  - Press RIGHT ALT/CMD to animate to the next seed
+ *  - Press SPACE to run animation across all seeds
  */
 @Suppress("GrazieInspection")
 fun main() {
@@ -90,7 +100,8 @@ fun main() {
             draw(rose, backgroundImage)
 
             // ANIMATE
-            enableRoseAnimation()
+            enableVisibilityAnimations()
+            enableRoseAnimations()
 
             enableSeedView()
         }
@@ -146,12 +157,15 @@ class BackgroundImage(imagePath: String) {
 
 private class MaurerRose : Animatable() {
 
-    var n = initialN // number of petals
-    var d = initialD // angle factor
+    // number of petals
+    var n: Double by Delegates.observable(initialN) { _, _, newValue -> if (::nSlider.isInitialized) nSlider.value = newValue }
 
-    fun animateN(targetValue: Double, duration: Long, predelay: Long = 0, easing: Easing = Easing.CubicInOut) {
-//        ::n.cancel()
-        ::n.animate(targetValue, duration, easing, predelay)
+    // angle factor
+    var d: Double by Delegates.observable(initialD) { _, _, newValue -> if (::dSlider.isInitialized) dSlider.value = newValue }
+
+    fun animate(targetNValue: Double, targetDValue: Double, duration: Long, predelay: Long = 0, easing: Easing = Easing.CubicInOut) {
+        ::n.animate(targetNValue, duration, easing, predelay)
+        ::d.animate(targetDValue, duration, easing, predelay)
     }
 
     context(Program)
@@ -202,6 +216,7 @@ private class MaurerRose : Animatable() {
 private enum class Visibility {
     VISIBLE, FADE_OUT, FADE_IN
 }
+
 private enum class Reveal {
     REVEALED, GRADUAL_IN, GRADUAL_OUT
 }
@@ -211,15 +226,32 @@ private var reveal = Reveal.REVEALED
 private var visibilityChangeTime = 0.0
 private var revealChangeTime = 0.0
 
-private fun Program.enableRoseAnimation() {
-    executeOnKey("space") {
-        val animationDuration = aConfig.animationDuration
-        val animationEasing = aConfig.animationEasing
-        rose.animateN(aConfig.n2, animationDuration, easing = animationEasing)
-        rose.animateN(aConfig.n3, animationDuration, animationDuration, animationEasing)
-        rose.animateN(aConfig.n2, animationDuration, 2 * animationDuration, animationEasing)
-        rose.animateN(aConfig.n1, animationDuration, 3 * animationDuration, animationEasing)
+private fun Program.enableRoseAnimations() {
+    executeOnKey("left-super") {
+        val targetSeedIndex = max(lastSelectedSeed - 1, 0)
+        animateToTarget(targetSeedIndex)
     }
+    executeOnKey("right-super") {
+        val targetSeedIndex = min(lastSelectedSeed + 1, seeds.lastIndex)
+        animateToTarget(targetSeedIndex)
+    }
+    executeOnKey("space") {
+        val firstTarget = lastSelectedSeed + 1
+        seeds.subList(firstTarget, seeds.lastIndex)
+            .filter { it.isNotEmpty() }
+            .forEachIndexed { index, _ ->
+                animateToTarget(firstTarget + index, index * animationDuration)
+            }
+    }
+}
+
+private fun animateToTarget(targetSeedIndex: Int, predelay: Long = 0L) {
+    val targetSeed = seeds[targetSeedIndex]
+    rose.animate(targetSeed.nValue, targetSeed.dValue, animationDuration, predelay, easing = aConfig.animationEasing)
+    lastSelectedSeed = targetSeedIndex
+}
+
+private fun Program.enableVisibilityAnimations() {
     executeOnKey("escape") {
         visibility = Visibility.FADE_OUT
         visibilityChangeTime = seconds
@@ -228,7 +260,6 @@ private fun Program.enableRoseAnimation() {
         visibility = Visibility.FADE_IN
         reveal = Reveal.REVEALED
         visibilityChangeTime = seconds
-
     }
     executeOnKey("right-shift") {
         reveal = Reveal.GRADUAL_IN
@@ -298,14 +329,14 @@ private fun Body.addCurvesButton() {
     }
 }
 
-private var lastSelectedSlot = -1
+private var lastSelectedSeed = 0
 private val seeds = loadSeeds()
 private fun loadSeeds(): MutableList<RoseSeed> {
     val loadedSeeds = seedStore.readLines().map {
         val (nValue, dValue) = it.split(",")
         RoseSeed(nValue = nValue.toDouble(), dValue = dValue.toDouble())
     }.toMutableList()
-    return if (loadedSeeds.size < 9) MutableList(9) { RoseSeed(nValue = 0.0, dValue = 0.0) } else loadedSeeds
+    return if (loadedSeeds.size < 9) MutableList(9) { RoseSeed.Empty } else loadedSeeds
 }
 
 private var editMode = false
@@ -317,24 +348,21 @@ private fun Program.enableSeedView() {
     onNumberKeys { slot -> if (editMode) writeSeed(slot) else readSeed(slot) }
     extend {
         seeds.forEachIndexed { index, seed ->
-            drawCheckPoint(index, seed.nValue, seed.dValue)
+            if (seed.isNotEmpty()) drawSeed(index, seed.nValue, seed.dValue)
         }
     }
 }
 
 fun readSeed(slot: Int) {
-    lastSelectedSlot = slot
+    lastSelectedSeed = slot
     seeds[slot].let {
-        nSlider.value = it.nValue
-        dSlider.value = it.dValue
-        // TODO Allow setting seeds when UI is not shown
-//        rose.n = it.nValue
-//        rose.d = it.dValue
+        rose.n = it.nValue
+        rose.d = it.dValue
     }
 }
 
 private fun writeSeed(slot: Int) {
-    lastSelectedSlot = slot
+    lastSelectedSeed = slot
     val seed = RoseSeed(nValue = rose.n, dValue = rose.d)
     seeds[slot] = seed
     seedStore.put(seeds)
@@ -344,9 +372,9 @@ private fun File.put(seeds: List<RoseSeed>) {
     writeText(seeds.joinToString("\n") { "${it.nValue},${it.dValue}" })
 }
 
-private fun Program.drawCheckPoint(slot: Int, nValue: Double, dValue: Double) {
+private fun Program.drawSeed(slot: Int, nValue: Double, dValue: Double) {
     drawer.translate(10.0, 160.0 + slot * 40.0)
-    drawer.fill = if (lastSelectedSlot == slot) ColorRGBa.DARK_GREY else ColorRGBa.GREY
+    drawer.fill = if (lastSelectedSeed == slot) ColorRGBa.DARK_GREY else ColorRGBa.GREY
     drawer.fontMap = bigFont
     drawer.text((slot + 1).toString(), 0.0, 0.0)
     if (editMode) {
@@ -358,24 +386,13 @@ private fun Program.drawCheckPoint(slot: Int, nValue: Double, dValue: Double) {
 }
 
 private fun Program.enableKeyboardControls() {
-    // Control N
-    val updateNSlider: (KeyEvent) -> Unit = { keyEvent -> keyEvent.mapAsdfKeyRow { nSlider.value += it } }
-    val setNValue: (KeyEvent) -> Unit = { keyEvent -> keyEvent.mapAsdfKeyRow { rose.n += it } }
-    updateValue(updateNSlider, setNValue)
-    // Control D
-    val updateDSlider: (KeyEvent) -> Unit = { keyEvent -> keyEvent.mapZxcvKeyRow { dSlider.value += it } }
-    val setDValue: (KeyEvent) -> Unit = { keyEvent -> keyEvent.mapZxcvKeyRow { rose.d += it } }
-    updateValue(updateDSlider, setDValue)
+    onKeyEvent { keyEvent -> keyEvent.mapAsdfKeyRow { rose.n += it } }
+    onKeyEvent { keyEvent -> keyEvent.mapZxcvKeyRow { rose.d += it } }
 }
 
-private fun Program.updateValue(updateSlider: (KeyEvent) -> Unit, setValue: (KeyEvent) -> Unit) {
-    if (showUi) {
-        keyboard.keyRepeat.listen(updateSlider)
-        keyboard.keyDown.listen(updateSlider)
-    } else {
-        keyboard.keyRepeat.listen(setValue)
-        keyboard.keyDown.listen(setValue)
-    }
+private fun Program.onKeyEvent(setValue: (KeyEvent) -> Unit) {
+    keyboard.keyRepeat.listen(setValue)
+    keyboard.keyDown.listen(setValue)
 }
 
 private fun Program.setupScreenRecordingIfEnabled() {
@@ -443,8 +460,15 @@ private fun onNumberKeys(storeCheckpoint: (Int) -> Unit) {
 
 private data class RoseSeed(
     val nValue: Double,
-    val dValue: Double
-)
+    val dValue: Double,
+
+    ) {
+    fun isNotEmpty() = this != Empty
+
+    companion object {
+        val Empty = RoseSeed(0.0, 0.0)
+    }
+}
 
 private open class AnimationConfig(
     val serial: Int,
