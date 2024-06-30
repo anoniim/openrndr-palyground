@@ -5,6 +5,7 @@ package net.solvetheriddle.openrndr.maurer
 import net.solvetheriddle.openrndr.Display
 import net.solvetheriddle.openrndr.sketchSize
 import org.openrndr.KeyEvent
+import org.openrndr.MouseButton
 import org.openrndr.Program
 import org.openrndr.animatable.Animatable
 import org.openrndr.animatable.easing.Easing
@@ -36,6 +37,7 @@ private val useDisplay = Display.LG_ULTRAWIDE // Display.MACBOOK_AIR
 private const val showUi = true
 private const val enableScreenshots = false
 private const val enableScreenRecording = false
+private const val storeFile = "maurer_roses_store"
 
 // config background image
 @Suppress("RedundantNullableReturnType", "RedundantSuppression") // can be set to null
@@ -49,17 +51,12 @@ private val aConfig = AnimationConfig.Something1
 private val initialN = aConfig.n1
 private const val initialD = 28.8 // For AnimationConfig.AX = 3.1
 private const val lineOpacity = 0.6
-private const val fillFactor = 0.95
 private const val closeShape = false
-private var curvesEnabled = false
-private const val revealDuration = 5.0 // seconds
+private const val revealDuration = 7.0 // seconds
 private const val fadeOutDuration = 3.0 // seconds
 private const val animationDuration = 5_000L // milliseconds
 
 private val rose = MaurerRose()
-private val seedStore = File("data/maurer_roses_store.txt").apply { createNewFile() }
-private lateinit var smallFont: FontImageMap
-private lateinit var bigFont: FontImageMap
 
 /**
  * This program draws and animates Maurer Rose - https://en.wikipedia.org/wiki/Maurer_rose.
@@ -71,9 +68,10 @@ private lateinit var bigFont: FontImageMap
  *  - Press N M , . / keys to increase D
  *
  *  Control visibility and reveal of the rose:
- *  - Press ESCAPE to fade out the rose
+ *  - Press = to fade out the rose
  *  - Press ENTER to fade in the rose
  *  - Press RIGHT SHIFT to reveal the rose gradually
+ *  - Press BACKSPACE to hide the rose gradually
  *
  *  Save and load seeds:
  *  - Press § to toggle edit mode for seeds
@@ -83,6 +81,12 @@ private lateinit var bigFont: FontImageMap
  *  - Press LEFT ALT/CMD to animate to the previous seed
  *  - Press RIGHT ALT/CMD to animate to the next seed
  *  - Press SPACE to run animation across all seeds
+ *
+ *  Zoom in and out:
+ *  - Press + to zoom in
+ *  - Press - to zoom out
+ *  - Scroll mouse wheel to zoom in and out
+ *  - Press middle mouse button to reset zoom
  */
 @Suppress("GrazieInspection")
 fun main() {
@@ -181,7 +185,7 @@ private class MaurerRose : Animatable() {
 
     private fun Program.shapeContour(): ShapeContour {
         val c = contour {
-            val radius = drawer.height / 2.0 * fillFactor
+            val radius = drawer.height / 2.0 * zoom
             val firstPoint = getPointForAngle(0, radius)
             moveTo(firstPoint)
             val numOfConnectedPoints = 360
@@ -192,8 +196,8 @@ private class MaurerRose : Animatable() {
             closeShapeIfEnabled(firstPoint)
         }
         return when (reveal) {
-            Reveal.GRADUAL_IN -> c.sub(0.0, min((seconds - revealChangeTime) / revealDuration, 1.0))
-            Reveal.GRADUAL_OUT -> c.sub(1.0, max((seconds - revealChangeTime) / revealDuration, 0.0))
+            Reveal.GRADUAL_IN -> c.sampleEquidistant(10_000).sub(0.0, min((seconds - revealChangeTime) / revealDuration, 1.0))
+            Reveal.GRADUAL_OUT -> c.sampleEquidistant(10_000).sub(1.0, max((seconds - revealChangeTime) / revealDuration, 0.0))
             else -> c
         }
     }
@@ -252,7 +256,7 @@ private fun animateToTarget(targetSeedIndex: Int, predelay: Long = 0L) {
 }
 
 private fun Program.enableVisibilityAnimations() {
-    executeOnKey("escape") {
+    executeOnKey("=") {
         visibility = Visibility.FADE_OUT
         visibilityChangeTime = seconds
     }
@@ -284,7 +288,6 @@ private lateinit var nSlider: Slider
 private lateinit var dSlider: Slider
 
 private fun Program.addUiIfEnabled() {
-
     if (showUi) extend(ControlManager()) {
         layout {
             addNSlider()
@@ -318,6 +321,8 @@ private fun Body.addDSlider() {
     }
 }
 
+private var curvesEnabled = false
+
 private fun Body.addCurvesButton() {
     button {
         fun getCurvesButtonLabel() = if (curvesEnabled) "Curves ON" else "Curves OFF"
@@ -330,7 +335,9 @@ private fun Body.addCurvesButton() {
 }
 
 private var lastSelectedSeed = 0
+private val seedStore = File("data/$storeFile.txt").apply { createNewFile() }
 private val seeds = loadSeeds()
+
 private fun loadSeeds(): MutableList<RoseSeed> {
     val loadedSeeds = seedStore.readLines().map {
         val (nValue, dValue) = it.split(",")
@@ -340,6 +347,8 @@ private fun loadSeeds(): MutableList<RoseSeed> {
 }
 
 private var editMode = false
+private lateinit var smallFont: FontImageMap
+private lateinit var bigFont: FontImageMap
 
 private fun Program.enableSeedView() {
     smallFont = loadFont("data/fonts/Rowdies-Light.ttf", 12.0)
@@ -388,6 +397,25 @@ private fun Program.drawSeed(slot: Int, nValue: Double, dValue: Double) {
 private fun Program.enableKeyboardControls() {
     onKeyEvent { keyEvent -> keyEvent.mapAsdfKeyRow { rose.n += it } }
     onKeyEvent { keyEvent -> keyEvent.mapZxcvKeyRow { rose.d += it } }
+    enableMouseControl()
+}
+
+private var zoom = 0.95
+
+fun Program.enableMouseControl() {
+    mouse.buttonUp.listen {
+        if (it.button == MouseButton.CENTER) {
+            zoom = 0.95
+        }
+    }
+    mouse.scrolled.listen {
+        println(it.rotation)
+        zoom += it.rotation.y / 50
+    }
+    onKeyEvent {
+        if (it.name == "+") zoom += 0.1
+        if (it.name == "-") zoom -= 0.1
+    }
 }
 
 private fun Program.onKeyEvent(setValue: (KeyEvent) -> Unit) {
@@ -461,8 +489,7 @@ private fun onNumberKeys(storeCheckpoint: (Int) -> Unit) {
 private data class RoseSeed(
     val nValue: Double,
     val dValue: Double,
-
-    ) {
+) {
     fun isNotEmpty() = this != Empty
 
     companion object {
