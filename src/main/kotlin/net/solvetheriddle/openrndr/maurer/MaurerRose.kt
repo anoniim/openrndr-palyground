@@ -11,10 +11,7 @@ import org.openrndr.animatable.Animatable
 import org.openrndr.animatable.easing.Easing
 import org.openrndr.application
 import org.openrndr.color.ColorRGBa
-import org.openrndr.draw.FontImageMap
-import org.openrndr.draw.colorBuffer
-import org.openrndr.draw.loadFont
-import org.openrndr.draw.loadImage
+import org.openrndr.draw.*
 import org.openrndr.extensions.Screenshots
 import org.openrndr.extra.color.presets.DARK_GREY
 import org.openrndr.extra.color.presets.GREY
@@ -35,7 +32,7 @@ import kotlin.properties.Delegates
 // sketch config
 private val useDisplay = Display.LG_ULTRAWIDE // Display.MACBOOK_AIR
 private const val showUi = true
-private const val enableScreenshots = false
+private const val enableScreenshots = false // on SPACE, disables rose animations
 private const val enableScreenRecording = false
 private const val storeFile = "maurer_roses_store"
 
@@ -95,8 +92,7 @@ fun main() {
             sketchSize(useDisplay)
         }
         program {
-            addUiIfEnabled()
-            enableKeyboardControls()
+            // RECORD
             setupScreenshotsIfEnabled()
             setupScreenRecordingIfEnabled()
 
@@ -107,7 +103,10 @@ fun main() {
             enableVisibilityAnimations()
             enableRoseAnimations()
 
+            // UI
             enableSeedView()
+            addUiIfEnabled()
+            enableKeyboardControls()
         }
     }
 }
@@ -116,12 +115,12 @@ private fun Program.draw(rose: MaurerRose, imagePath: String?) {
     extend {
         drawer.clear(ColorRGBa.BLACK)
         drawBackgroundIfSet(imagePath)
-        drawer.translate(drawer.bounds.center)
-        drawer.translate(0.0, 6.0)
-        rose.draw()
-        rose.updateAnimation()
-        drawer.translate(0.0, -6.0)
-        drawer.translate(-drawer.bounds.center)
+        drawer.isolated {
+            drawer.translate(drawer.bounds.center)
+            drawer.translate(0.0, 6.0)
+            rose.draw()
+            rose.updateAnimation()
+        }
     }
 }
 
@@ -162,10 +161,16 @@ class BackgroundImage(imagePath: String) {
 private class MaurerRose : Animatable() {
 
     // number of petals
-    var n: Double by Delegates.observable(initialN) { _, _, newValue -> if (::nSlider.isInitialized) nSlider.value = newValue }
+    var n: Double by Delegates.observable(initialN) { _, _, newValue ->
+        if (::nSlider.isInitialized) nSlider.value = newValue
+        if (::screenshots.isInitialized) screenshots.updateName(n = newValue)
+    }
 
     // angle factor
-    var d: Double by Delegates.observable(initialD) { _, _, newValue -> if (::dSlider.isInitialized) dSlider.value = newValue }
+    var d: Double by Delegates.observable(initialD) { _, _, newValue ->
+        if (::dSlider.isInitialized) dSlider.value = newValue
+        if (::screenshots.isInitialized) screenshots.updateName(d = newValue)
+    }
 
     fun animate(targetNValue: Double, targetDValue: Double, duration: Long, predelay: Long = 0, easing: Easing = Easing.CubicInOut) {
         ::n.animate(targetNValue, duration, easing, predelay)
@@ -239,9 +244,9 @@ private fun Program.enableRoseAnimations() {
         val targetSeedIndex = min(lastSelectedSeed + 1, seeds.lastIndex)
         animateToTarget(targetSeedIndex)
     }
-    executeOnKey("space") {
+    if (!enableScreenshots) executeOnKey("space") {
         val firstTarget = lastSelectedSeed + 1
-        seeds.subList(firstTarget, seeds.lastIndex)
+        seeds.subList(firstTarget, seeds.size)
             .filter { it.isNotEmpty() }
             .forEachIndexed { index, _ ->
                 animateToTarget(firstTarget + index, index * animationDuration)
@@ -351,11 +356,11 @@ private lateinit var smallFont: FontImageMap
 private lateinit var bigFont: FontImageMap
 
 private fun Program.enableSeedView() {
-    smallFont = loadFont("data/fonts/Rowdies-Light.ttf", 12.0)
-    bigFont = loadFont("data/fonts/Rowdies-Bold.ttf", 40.0)
     executeOnKey("§") { editMode = !editMode }
     onNumberKeys { slot -> if (editMode) writeSeed(slot) else readSeed(slot) }
-    extend {
+    smallFont = loadFont("data/fonts/Rowdies-Light.ttf", 12.0)
+    bigFont = loadFont("data/fonts/Rowdies-Bold.ttf", 40.0)
+    if (showUi) extend {
         seeds.forEachIndexed { index, seed ->
             if (seed.isNotEmpty()) drawSeed(index, seed.nValue, seed.dValue)
         }
@@ -382,16 +387,19 @@ private fun File.put(seeds: List<RoseSeed>) {
 }
 
 private fun Program.drawSeed(slot: Int, nValue: Double, dValue: Double) {
-    drawer.translate(10.0, 160.0 + slot * 40.0)
-    drawer.fill = if (lastSelectedSeed == slot) ColorRGBa.DARK_GREY else ColorRGBa.GREY
-    drawer.fontMap = bigFont
-    drawer.text((slot + 1).toString(), 0.0, 0.0)
-    if (editMode) {
-        drawer.fontMap = smallFont
-        drawer.text("N: $nValue", 28.0, -15.0)
-        drawer.text("D: $dValue", 28.0, 0.0)
+    with(drawer) {
+        isolated {
+            translate(10.0, 160.0 + slot * 40.0)
+            fill = if (lastSelectedSeed == slot) ColorRGBa.DARK_GREY else ColorRGBa.GREY
+            fontMap = bigFont
+            text((slot + 1).toString(), 0.0, 0.0)
+            if (editMode) {
+                fontMap = smallFont
+                text("N: $nValue", 28.0, -15.0)
+                text("D: $dValue", 28.0, 0.0)
+            }
+        }
     }
-    drawer.translate(-10.0, -(160.0 + slot * 40.0))
 }
 
 private fun Program.enableKeyboardControls() {
@@ -408,9 +416,9 @@ fun Program.enableMouseControl() {
             zoom = 0.95
         }
     }
+    val scrollSpeedDampening = 50
     mouse.scrolled.listen {
-        println(it.rotation)
-        zoom += it.rotation.y / 50
+        zoom += it.rotation.y / scrollSpeedDampening
     }
     onKeyEvent {
         if (it.name == "+") zoom += 0.1
@@ -431,11 +439,27 @@ private fun Program.setupScreenRecordingIfEnabled() {
     }
 }
 
+private lateinit var screenshots: RoseScreenshots
+
 private fun Program.setupScreenshotsIfEnabled() {
     if (enableScreenshots) {
-        extend(Screenshots()) {
-            name = "screenshots/maurer_rose_${aConfig.serial}.png"
-        }
+        screenshots = RoseScreenshots()
+        extend(screenshots)
+    }
+}
+
+private class RoseScreenshots : Screenshots() {
+
+    private val customFolderName = "screenshots/maurer_roses"
+
+    init {
+        name = "$customFolderName/rose_${rose.d}-${rose.n}.png"
+    }
+
+    fun updateName(n: Double? = null, d: Double? = null) {
+        val newN = n ?: rose.n
+        val newD = d ?: rose.d
+        name = "$customFolderName/rose_$newD-$newN.png"
     }
 }
 
@@ -585,7 +609,7 @@ private open class AnimationConfig(
     )
 
     object Something2 : AnimationConfig(
-        serial = 100,
+        serial = 101,
         n1 = 201.132662,
         n2 = 142.826144,
         n3 = 142.828444,
