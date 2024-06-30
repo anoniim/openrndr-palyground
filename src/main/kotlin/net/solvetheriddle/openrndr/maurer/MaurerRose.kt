@@ -11,6 +11,7 @@ import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.*
 import org.openrndr.extensions.Screenshots
 import org.openrndr.extra.color.presets.DARK_GREY
+import org.openrndr.extra.color.presets.DARK_RED
 import org.openrndr.extra.color.presets.GREY
 import org.openrndr.extra.fx.color.LumaOpacity
 import org.openrndr.ffmpeg.ScreenRecorder
@@ -246,6 +247,7 @@ private fun Program.enableRoseAnimations() {
                 animateToTarget(firstTarget + index, index * animationDuration)
             }
     }
+    onCtrlNumberKeys { animateToTarget(it) }
 }
 
 private val animationEasing = Easing.CubicInOut
@@ -339,7 +341,7 @@ private var selectedSeed = 0
 private val seedBankFile = File("data/maurer_roses_store/$seedBankName").apply { createNewFile() }
 private val seedBank = loadSeeds().toMutableList()
 private var seeds = seedBank[selectedSeedGroup].toMutableList()
-private val initialN = seeds[selectedSeed].nValue.also { println(it) }
+private val initialN = seeds[selectedSeed].nValue
 private val initialD = seeds[selectedSeed].dValue // For AnimationConfig.AX = 3.1
 private val rose = MaurerRose()
 
@@ -403,7 +405,7 @@ private fun Program.drawSeedGroup() {
     with(drawer) {
         isolated {
             translate(20.0, 140.0)
-            fill = ColorRGBa.GREY
+            fill = if (editMode) ColorRGBa.DARK_RED else ColorRGBa.GREY
             circle(0.0, 0.0, 12.0)
             fill = ColorRGBa.BLACK
             fontMap = extraSmallFont
@@ -463,7 +465,7 @@ private fun Program.onKeyEvent(setValue: (KeyEvent) -> Unit) {
 private fun Program.setupScreenRecordingIfEnabled() {
     if (enableScreenRecording) {
         extend(ScreenRecorder()) {
-            name = "maurer_rose_vid_$seedBankName-$selectedSeedGroup"
+            name = "maurer_rose_vid_$seedBankName-${selectedSeedGroup.inc()}"
         }
     }
 }
@@ -534,7 +536,13 @@ private fun KeyEvent.mapZxcvKeyRow(setValue: (Double) -> Unit) {
 
 private fun Program.onNumberKeys(setSeedFunction: (Int) -> Unit) {
     keyboard.keyDown.listen {
-        if (it.name in "123456789") setSeedFunction(it.name.toInt() - 1)
+        if (it.modifiers.isEmpty() && it.name in "123456789") setSeedFunction(it.name.toInt() - 1)
+    }
+}
+
+private fun Program.onCtrlNumberKeys(function: (Int) -> Unit) {
+    keyboard.keyDown.listen {
+        if (it.modifiers.contains(KeyModifier.CTRL) && it.name in "123456789") function(it.name.toInt() - 1)
     }
 }
 
