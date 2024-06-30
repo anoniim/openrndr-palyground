@@ -28,7 +28,7 @@ import java.io.File
 import kotlin.math.*
 
 // sketch config
-private val useDisplay = Display.MACBOOK_AIR // Display.MACBOOK_AIR
+private val useDisplay = Display.LG_ULTRAWIDE // Display.MACBOOK_AIR
 private const val showUi = true
 private const val enableScreenshots = false
 private const val enableScreenRecording = false
@@ -59,15 +59,20 @@ private lateinit var bigFont: FontImageMap
 /**
  * This program draws and animates Maurer Rose - https://en.wikipedia.org/wiki/Maurer_rose.
  *
- * It allows to control the number of petals (N) and the angle factor (D) by sliders and keyboard.
+ * Control the number of petals (N) and the angle factor (D) by sliders and keyboard:
  *  - Use A S D F G T R E W Q keys to decrease N
  *  - Use ; L K J H Y U I O P keys to increase N
  *  - Use Z X C V B keys to decrease D
  *  - Use N M , . / keys to increase D
  *
- *  Press ESCAPE to fade out the rose
- *  Press ENTER to fade in the rose
- *  Press RIGHT SHIFT to reveal the rose gradually
+ *  Control visibility and reveal of the rose:
+ *  - Press ESCAPE to fade out the rose
+ *  - Press ENTER to fade in the rose
+ *  - Press RIGHT SHIFT to reveal the rose gradually
+ *
+ *  Save and load seeds:
+ *  - Press § to toggle edit mode for seeds
+ *  - Press 1-9 to read or write seeds
  */
 @Suppress("GrazieInspection")
 fun main() {
@@ -87,7 +92,7 @@ fun main() {
             // ANIMATE
             enableRoseAnimation()
 
-            enableCheckpointView()
+            enableSeedView()
         }
     }
 }
@@ -303,20 +308,36 @@ private fun loadSeeds(): MutableList<RoseSeed> {
     return if (loadedSeeds.size < 9) MutableList(9) { RoseSeed(nValue = 0.0, dValue = 0.0) } else loadedSeeds
 }
 
-private fun Program.enableCheckpointView() {
+private var editMode = false
+
+private fun Program.enableSeedView() {
     smallFont = loadFont("data/fonts/Rowdies-Light.ttf", 12.0)
     bigFont = loadFont("data/fonts/Rowdies-Bold.ttf", 40.0)
-    onNumberKeys { slot ->
-        lastSelectedSlot = slot
-        val seed = RoseSeed(nValue = rose.n, dValue = rose.d)
-        seeds[slot] = seed
-        seedStore.put(seeds)
-    }
+    executeOnKey("§") { editMode = !editMode }
+    onNumberKeys { slot -> if (editMode) writeSeed(slot) else readSeed(slot) }
     extend {
         seeds.forEachIndexed { index, seed ->
             drawCheckPoint(index, seed.nValue, seed.dValue)
         }
     }
+}
+
+fun readSeed(slot: Int) {
+    lastSelectedSlot = slot
+    seeds[slot].let {
+        nSlider.value = it.nValue
+        dSlider.value = it.dValue
+        // TODO Allow setting seeds when UI is not shown
+//        rose.n = it.nValue
+//        rose.d = it.dValue
+    }
+}
+
+private fun writeSeed(slot: Int) {
+    lastSelectedSlot = slot
+    val seed = RoseSeed(nValue = rose.n, dValue = rose.d)
+    seeds[slot] = seed
+    seedStore.put(seeds)
 }
 
 private fun File.put(seeds: List<RoseSeed>) {
@@ -328,9 +349,11 @@ private fun Program.drawCheckPoint(slot: Int, nValue: Double, dValue: Double) {
     drawer.fill = if (lastSelectedSlot == slot) ColorRGBa.DARK_GREY else ColorRGBa.GREY
     drawer.fontMap = bigFont
     drawer.text((slot + 1).toString(), 0.0, 0.0)
-    drawer.fontMap = smallFont
-    drawer.text("N: $nValue", 28.0, -15.0)
-    drawer.text("D: $dValue", 28.0, 0.0)
+    if (editMode) {
+        drawer.fontMap = smallFont
+        drawer.text("N: $nValue", 28.0, -15.0)
+        drawer.text("D: $dValue", 28.0, 0.0)
+    }
     drawer.translate(-10.0, -(160.0 + slot * 40.0))
 }
 
