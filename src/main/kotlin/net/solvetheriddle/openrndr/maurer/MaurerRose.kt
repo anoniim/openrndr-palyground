@@ -34,26 +34,18 @@ private val useDisplay = Display.LG_ULTRAWIDE // Display.MACBOOK_AIR
 private const val showUi = true
 private const val enableScreenshots = false // on SPACE, disables rose animations
 private const val enableScreenRecording = false
-private const val storeFile = "maurer_roses_store"
+private const val seedBankName = "playground" // showcase
 
 // config background image
 @Suppress("RedundantNullableReturnType", "RedundantSuppression") // can be set to null
 private val backgroundImage: String? = null // "data/images/otis_picture-background.png"
 private var fadeOutBackground = false
 
-// config Manual or Pre-defined
-//private val aConfig = AnimationConfig(0.5, 1.0, 2.0, 10_000, Easing.SineInOut)
-private val aConfig = AnimationConfig.Something1
-
-private val initialN = aConfig.n1
-private const val initialD = 28.8 // For AnimationConfig.AX = 3.1
 private const val lineOpacity = 0.6
 private const val closeShape = false
 private const val revealDuration = 7.0 // seconds
 private const val fadeOutDuration = 3.0 // seconds
 private const val animationDuration = 5_000L // milliseconds
-
-private val rose = MaurerRose()
 
 /**
  * This program draws and animates Maurer Rose - https://en.wikipedia.org/wiki/Maurer_rose.
@@ -237,15 +229,15 @@ private var revealChangeTime = 0.0
 
 private fun Program.enableRoseAnimations() {
     executeOnKey("left-super") {
-        val targetSeedIndex = max(lastSelectedSeed - 1, 0)
+        val targetSeedIndex = max(selectedSeed - 1, 0)
         animateToTarget(targetSeedIndex)
     }
     executeOnKey("right-super") {
-        val targetSeedIndex = min(lastSelectedSeed + 1, seeds.lastIndex)
+        val targetSeedIndex = min(selectedSeed + 1, seeds.lastIndex)
         animateToTarget(targetSeedIndex)
     }
     if (!enableScreenshots) executeOnKey("space") {
-        val firstTarget = lastSelectedSeed + 1
+        val firstTarget = selectedSeed + 1
         seeds.subList(firstTarget, seeds.size)
             .filter { it.isNotEmpty() }
             .forEachIndexed { index, _ ->
@@ -254,10 +246,11 @@ private fun Program.enableRoseAnimations() {
     }
 }
 
+private val animationEasing = Easing.CubicInOut
 private fun animateToTarget(targetSeedIndex: Int, predelay: Long = 0L) {
     val targetSeed = seeds[targetSeedIndex]
-    rose.animate(targetSeed.nValue, targetSeed.dValue, animationDuration, predelay, easing = aConfig.animationEasing)
-    lastSelectedSeed = targetSeedIndex
+    rose.animate(targetSeed.nValue, targetSeed.dValue, animationDuration, predelay, easing = animationEasing)
+    selectedSeed = targetSeedIndex
 }
 
 private fun Program.enableVisibilityAnimations() {
@@ -339,28 +332,44 @@ private fun Body.addCurvesButton() {
     }
 }
 
-private var lastSelectedSeed = 0
-private val seedStore = File("data/$storeFile.txt").apply { createNewFile() }
-private val seeds = loadSeeds()
+private var selectedSeedGroup = 0
+private var selectedSeed = 0
+private val seedBankFile = File("data/maurer_roses_store/$seedBankName").apply { createNewFile() }
+private val seedBank = loadSeeds().toMutableList()
+private var seeds = seedBank[selectedSeedGroup].toMutableList()
+private val initialN = seeds[selectedSeed].nValue.also { println(it) }
+private val initialD = seeds[selectedSeed].dValue // For AnimationConfig.AX = 3.1
+private val rose = MaurerRose()
 
-private fun loadSeeds(): MutableList<RoseSeed> {
-    val loadedSeeds = seedStore.readLines().map {
-        val (nValue, dValue) = it.split(",")
-        RoseSeed(nValue = nValue.toDouble(), dValue = dValue.toDouble())
-    }.toMutableList()
-    return if (loadedSeeds.size < 9) MutableList(9) { RoseSeed.Empty } else loadedSeeds
+private fun loadSeeds(): List<List<RoseSeed>> {
+    val loadedSeedBank = seedBankFile.readLines().map { line ->
+        line.split(";").map(RoseSeed::fromString)
+    }
+    return if (loadedSeedBank.size == 12) loadedSeedBank else newSeedBank()
 }
 
+private fun newSeedBank(): List<List<RoseSeed>> = List(12) { List(9) { RoseSeed.Empty } }
+private fun List<RoseSeed>.isGroupEmpty() = all { seed -> !seed.isNotEmpty() }
+
 private var editMode = false
+private lateinit var extraSmallFont: FontImageMap
+private lateinit var mediumFont: FontImageMap
 private lateinit var smallFont: FontImageMap
 private lateinit var bigFont: FontImageMap
 
 private fun Program.enableSeedView() {
+    onFKeys { group ->
+        selectedSeedGroup = group
+        seeds = seedBank[selectedSeedGroup].toMutableList()
+    }
     executeOnKey("§") { editMode = !editMode }
     onNumberKeys { slot -> if (editMode) writeSeed(slot) else readSeed(slot) }
+    extraSmallFont = loadFont("data/fonts/Rowdies-Light.ttf", 11.0)
     smallFont = loadFont("data/fonts/Rowdies-Light.ttf", 12.0)
+    mediumFont = loadFont("data/fonts/Rowdies-Light.ttf", 18.0)
     bigFont = loadFont("data/fonts/Rowdies-Bold.ttf", 40.0)
     if (showUi) extend {
+        drawSeedGroup()
         seeds.forEachIndexed { index, seed ->
             if (seed.isNotEmpty()) drawSeed(index, seed.nValue, seed.dValue)
         }
@@ -368,7 +377,7 @@ private fun Program.enableSeedView() {
 }
 
 fun readSeed(slot: Int) {
-    lastSelectedSeed = slot
+    selectedSeed = slot
     seeds[slot].let {
         rose.n = it.nValue
         rose.d = it.dValue
@@ -376,21 +385,40 @@ fun readSeed(slot: Int) {
 }
 
 private fun writeSeed(slot: Int) {
-    lastSelectedSeed = slot
+    selectedSeed = slot
     val seed = RoseSeed(nValue = rose.n, dValue = rose.d)
     seeds[slot] = seed
-    seedStore.put(seeds)
+    seedBank[selectedSeedGroup] = seeds
+    seedBankFile.write(seedBank)
 }
 
-private fun File.put(seeds: List<RoseSeed>) {
-    writeText(seeds.joinToString("\n") { "${it.nValue},${it.dValue}" })
+private fun File.write(seedBank: List<List<RoseSeed>>) {
+    writeText(seedBank.joinToString("\n") { group ->
+        group.joinToString(";") { seed -> "${seed.nValue},${seed.dValue}" }
+    })
+}
+
+private fun Program.drawSeedGroup() {
+    with(drawer) {
+        isolated {
+            translate(20.0, 140.0)
+            fill = ColorRGBa.GREY
+            circle(0.0, 0.0, 12.0)
+            fill = ColorRGBa.BLACK
+            fontMap = extraSmallFont
+            text("F${selectedSeedGroup + 1}", -7.0, 3.0)
+            fill = ColorRGBa.GREY
+            fontMap = mediumFont
+            text(seedBankName, 18.0, 5.0)
+        }
+    }
 }
 
 private fun Program.drawSeed(slot: Int, nValue: Double, dValue: Double) {
     with(drawer) {
         isolated {
-            translate(10.0, 160.0 + slot * 40.0)
-            fill = if (lastSelectedSeed == slot) ColorRGBa.DARK_GREY else ColorRGBa.GREY
+            translate(10.0, 185.0 + slot * 40.0)
+            fill = if (selectedSeed == slot) ColorRGBa.DARK_GREY else ColorRGBa.GREY
             fontMap = bigFont
             text((slot + 1).toString(), 0.0, 0.0)
             if (editMode) {
@@ -434,7 +462,7 @@ private fun Program.onKeyEvent(setValue: (KeyEvent) -> Unit) {
 private fun Program.setupScreenRecordingIfEnabled() {
     if (enableScreenRecording) {
         extend(ScreenRecorder()) {
-            name = "maurer_rose_vid_${aConfig.serial}"
+            name = "maurer_rose_vid_$seedBankName-$selectedSeedGroup"
         }
     }
 }
@@ -503,10 +531,18 @@ private fun KeyEvent.mapZxcvKeyRow(setValue: (Double) -> Unit) {
     }
 }
 
-context(Program)
-private fun onNumberKeys(storeCheckpoint: (Int) -> Unit) {
+private fun Program.onNumberKeys(setSeedFunction: (Int) -> Unit) {
     keyboard.keyDown.listen {
-        if (it.name in "123456789") storeCheckpoint(it.name.toInt() - 1)
+        if (it.name in "123456789") setSeedFunction(it.name.toInt() - 1)
+    }
+}
+
+private fun Program.onFKeys(onFKey: (Int) -> Unit) {
+    val fKeys = listOf("f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12")
+    keyboard.keyDown.listen {
+        if (it.name in fKeys) {
+            onFKey(it.name.drop(1).toInt() - 1)
+        }
     }
 }
 
@@ -517,6 +553,11 @@ private data class RoseSeed(
     fun isNotEmpty() = this != Empty
 
     companion object {
+        fun fromString(input: String): RoseSeed {
+            val (nValue, dValue) = input.split(",")
+            return RoseSeed(nValue.toDouble(), dValue = dValue.toDouble())
+        }
+
         val Empty = RoseSeed(0.0, 0.0)
     }
 }
