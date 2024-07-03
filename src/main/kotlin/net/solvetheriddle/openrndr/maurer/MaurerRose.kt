@@ -1,5 +1,3 @@
-@file:Suppress("unused")
-
 package net.solvetheriddle.openrndr.maurer
 
 import net.solvetheriddle.openrndr.Display
@@ -13,7 +11,9 @@ import org.openrndr.extensions.Screenshots
 import org.openrndr.extra.color.presets.DARK_GREY
 import org.openrndr.extra.color.presets.DARK_RED
 import org.openrndr.extra.color.presets.GREY
+import org.openrndr.extra.color.presets.MAROON
 import org.openrndr.extra.fx.color.LumaOpacity
+import org.openrndr.extra.shadestyles.NPointRadialGradient
 import org.openrndr.ffmpeg.ScreenRecorder
 import org.openrndr.math.Vector2
 import org.openrndr.math.asRadians
@@ -28,7 +28,7 @@ import kotlin.math.*
 import kotlin.properties.Delegates
 
 // sketch config
-private val useDisplay = Display.LG_ULTRAWIDE // Display.MACBOOK_AIR
+private val useDisplay = Display.MACBOOK_AIR // Display.MACBOOK_AIR
 private const val showUi = true
 private const val enableScreenshots = false // on SPACE, disables rose animations
 private const val enableScreenRecording = false
@@ -40,10 +40,11 @@ private val backgroundImage: String? = null // "data/images/otis_picture-backgro
 private var fadeOutBackground = false
 
 private const val lineOpacity = 0.6
-private const val closeShape = false
 private const val revealDuration = 7.0 // seconds
 private const val fadeOutDuration = 3.0 // seconds
 private const val animationDuration = 5_000L // milliseconds
+
+private fun selectedShadeStyle() = subtleEdges
 
 /**
  * This program draws and animates Maurer Rose - https://en.wikipedia.org/wiki/Maurer_rose.
@@ -68,6 +69,7 @@ private const val animationDuration = 5_000L // milliseconds
  *  - Press LEFT ALT/CMD to animate to the previous seed
  *  - Press RIGHT ALT/CMD to animate to the next seed
  *  - Press SPACE to run animation across all seeds
+ *  - Press CTRL + 1-9 to animate to a specific seed
  *
  *  Zoom in and out:
  *  - Press + to zoom in
@@ -114,9 +116,9 @@ private fun Program.draw(rose: MaurerRose, imagePath: String?) {
     }
 }
 
-private fun Program.drawBackgroundIfSet(imagePath: String?) {
-    if (imagePath != null) {
-        val image = BackgroundImage(imagePath)
+private fun Program.drawBackgroundIfSet(backgroundImagePath: String?) {
+    if (backgroundImagePath != null) {
+        val image = BackgroundImage(backgroundImagePath)
         val time = if (fadeOutBackground) frameCount / 30.0 / 2 else 0.0
         if (time < 3 * PI / 2) {
             applyFilter(image, time)
@@ -174,27 +176,20 @@ private class MaurerRose : Animatable() {
 
     context(Program)
     fun draw() {
-        drawer.fill = null
-        drawer.stroke = when (visibility) {
-            Visibility.FADE_OUT -> ColorRGBa.WHITE.opacify(lineOpacity - (seconds - visibilityChangeTime) / fadeOutDuration)
-            Visibility.FADE_IN -> ColorRGBa.WHITE.opacify(min(lineOpacity, (seconds - visibilityChangeTime) / fadeOutDuration))
-            else -> ColorRGBa.WHITE.opacify(lineOpacity)
-        }
-        drawer.contour(shapeContour())
+        drawer.shadeStyle = if (fillEnabled) selectedShadeStyle() else null
+        drawer.stroke = getStroke()
+        val contour = shapeContour()
+        if (!contour.empty) drawer.contour(contour)
+    }
+
+    private fun Program.getStroke() = when (visibility) {
+        Visibility.FADE_OUT -> ColorRGBa.WHITE.opacify(lineOpacity - (seconds - visibilityChangeTime) / fadeOutDuration)
+        Visibility.FADE_IN -> ColorRGBa.WHITE.opacify(min(lineOpacity, (seconds - visibilityChangeTime) / fadeOutDuration))
+        else -> ColorRGBa.WHITE.opacify(lineOpacity)
     }
 
     private fun Program.shapeContour(): ShapeContour {
-        val c = contour {
-            val radius = drawer.height / 2.0 * zoom
-            val firstPoint = getPointForAngle(0, radius)
-            moveTo(firstPoint)
-            val numOfConnectedPoints = 360
-            for (angle in 0..numOfConnectedPoints) {
-                val nextPoint = getPointForAngle(angle, radius)
-                if (curvesEnabled) continueTo(nextPoint) else lineTo(nextPoint)
-            }
-            closeShapeIfEnabled(firstPoint)
-        }
+        val c = if (fillEnabled) fillableShapeContour() else lineShapeContour()
         return when (reveal) {
             Reveal.GRADUAL_IN -> c.sampleEquidistant(10_000).sub(0.0, min((seconds - revealChangeTime) / revealDuration, 1.0))
             Reveal.GRADUAL_OUT -> c.sampleEquidistant(10_000).sub(1.0, max((seconds - revealChangeTime) / revealDuration, 0.0))
@@ -202,10 +197,38 @@ private class MaurerRose : Animatable() {
         }
     }
 
+    private fun Program.lineShapeContour(): ShapeContour = contour {
+        val radius = drawer.height / 2.0 * zoom
+        val firstPoint = getPointForAngle(0, radius)
+        moveTo(firstPoint)
+        val numOfConnectedPoints = 360
+        for (angle in 0..numOfConnectedPoints) {
+            val nextPoint = getPointForAngle(angle, radius)
+            if (curvesEnabled) continueTo(nextPoint) else lineTo(nextPoint)
+        }
+        closeShapeIfEnabled(firstPoint)
+    }
+
+
     private fun ContourBuilder.closeShapeIfEnabled(firstPoint: Vector2) {
+        val closeShape = fillEnabled
         if (closeShape) {
             if (curvesEnabled) continueTo(firstPoint) else lineTo(firstPoint)
         }
+    }
+
+    private fun Program.fillableShapeContour(): ShapeContour {
+        val radius = drawer.height / 2.0 * zoom
+        var angle = 0
+        var nextPoint = getPointForAngle(0, radius)
+        val rosePoints = mutableListOf(nextPoint)
+        do {
+            angle++
+            nextPoint = getPointForAngle(angle, radius)
+            rosePoints.add(nextPoint)
+        } while (!(angle > 360 && nextPoint.distanceTo(Vector2.ZERO) < 10.0))
+
+        return ShapeContour.fromPoints(rosePoints, true)
     }
 
     private fun getPointForAngle(angle: Int, radius: Double): Vector2 {
@@ -295,6 +318,7 @@ private fun Program.addUiIfEnabled() {
             addNSlider()
             addDSlider()
             addCurvesButton()
+            addFillButton()
         }
     }
 }
@@ -336,6 +360,19 @@ private fun Body.addCurvesButton() {
     }
 }
 
+private var fillEnabled = false
+
+private fun Body.addFillButton() {
+    button {
+        fun getFillButtonLabel() = if (fillEnabled) "Fill ON" else "Fill OFF"
+        label = getFillButtonLabel()
+        events.clicked.listen {
+            fillEnabled = !fillEnabled
+            label = getFillButtonLabel()
+        }
+    }
+}
+
 private var selectedSeedGroup = 0
 private var selectedSeed = 0
 private val seedBankFile = File("data/maurer_roses_store/$seedBankName").apply { createNewFile() }
@@ -366,7 +403,9 @@ private fun Program.enableSeedView() {
         selectedSeedGroup = group
         selectedSeed = 0
         seeds = seedBank[selectedSeedGroup].toMutableList()
-        rose.set(seeds[0].nValue, seeds[0].dValue)
+        if (seeds.isNotEmpty()) {
+            rose.set(seeds[0].nValue, seeds[0].dValue)
+        }
     }
     executeOnKey("§") { editMode = !editMode }
     onNumberKeys { slot -> if (editMode) writeSeed(slot) else readSeed(slot) }
@@ -375,9 +414,10 @@ private fun Program.enableSeedView() {
     mediumFont = loadFont("data/fonts/Rowdies-Light.ttf", 18.0)
     bigFont = loadFont("data/fonts/Rowdies-Bold.ttf", 40.0)
     if (showUi) extend {
-        drawSeedGroup()
+        val topMargin = 185.0
+        drawSeedGroup(topMargin)
         seeds.forEachIndexed { index, seed ->
-            if (seed.isNotEmpty()) drawSeed(index, seed.nValue, seed.dValue)
+            if (seed.isNotEmpty()) drawSeed(index, seed.nValue, seed.dValue, topMargin)
         }
     }
 }
@@ -401,10 +441,10 @@ private fun File.write(seedBank: List<List<RoseSeed>>) {
     })
 }
 
-private fun Program.drawSeedGroup() {
+private fun Program.drawSeedGroup(topMargin: Double) {
     with(drawer) {
         isolated {
-            translate(20.0, 140.0)
+            translate(20.0, topMargin)
             fill = if (editMode) ColorRGBa.DARK_RED else ColorRGBa.GREY
             circle(0.0, 0.0, 12.0)
             fill = ColorRGBa.BLACK
@@ -417,10 +457,10 @@ private fun Program.drawSeedGroup() {
     }
 }
 
-private fun Program.drawSeed(slot: Int, nValue: Double, dValue: Double) {
+private fun Program.drawSeed(slot: Int, nValue: Double, dValue: Double, topMargin: Double) {
     with(drawer) {
         isolated {
-            translate(10.0, 185.0 + slot * 40.0)
+            translate(10.0, topMargin + 45.0 + slot * 40.0)
             fill = if (selectedSeed == slot) ColorRGBa.DARK_GREY else ColorRGBa.GREY
             fontMap = bigFont
             text((slot + 1).toString(), 0.0, 0.0)
@@ -667,3 +707,12 @@ private open class AnimationConfig(
         animationEasing = Easing.CubicInOut,
     )
 }
+
+private val subtleEdges = NPointRadialGradient(
+    arrayOf(
+        ColorRGBa.MAROON.opacify(0.0),
+        ColorRGBa.MAROON.opacify(0.3),
+        ColorRGBa.MAGENTA.opacify(0.5),
+        ColorRGBa.YELLOW.opacify(0.5)
+    ), points = arrayOf(0.5, 0.8, 0.9, 1.0)
+)
