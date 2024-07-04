@@ -8,10 +8,7 @@ import org.openrndr.animatable.easing.Easing
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.*
 import org.openrndr.extensions.Screenshots
-import org.openrndr.extra.color.presets.DARK_GREY
-import org.openrndr.extra.color.presets.DARK_RED
-import org.openrndr.extra.color.presets.GREY
-import org.openrndr.extra.color.presets.MAROON
+import org.openrndr.extra.color.presets.*
 import org.openrndr.extra.fx.color.LumaOpacity
 import org.openrndr.extra.shadestyles.NPointRadialGradient
 import org.openrndr.ffmpeg.ScreenRecorder
@@ -44,7 +41,8 @@ private const val revealDuration = 7.0 // seconds
 private const val fadeOutDuration = 3.0 // seconds
 private const val animationDuration = 5_000L // milliseconds
 
-private fun selectedShadeStyle() = subtleEdges
+private const val allowPartialShapes = true // true for smoother animations and cut-off stills; false for flashy animations and complete stills
+private fun selectedShadeStyle() = beautifulFlower
 
 /**
  * This program draws and animates Maurer Rose - https://en.wikipedia.org/wiki/Maurer_rose.
@@ -189,12 +187,18 @@ private class MaurerRose : Animatable() {
     }
 
     private fun Program.shapeContour(): ShapeContour {
-        val c = if (fillEnabled) fillableShapeContour() else lineShapeContour()
+        val c = if (fillEnabled) {
+            if (allowPartialShapes) fillableIncompleteShapeContour() else fillableCompleteShapeContour()
+        } else lineShapeContour()
         return when (reveal) {
             Reveal.GRADUAL_IN -> c.sampleEquidistant(10_000).sub(0.0, min((seconds - revealChangeTime) / revealDuration, 1.0))
             Reveal.GRADUAL_OUT -> c.sampleEquidistant(10_000).sub(1.0, max((seconds - revealChangeTime) / revealDuration, 0.0))
             else -> c
         }
+    }
+
+    private fun Program.fillableIncompleteShapeContour(): ShapeContour {
+        return lineShapeContour().close()
     }
 
     private fun Program.lineShapeContour(): ShapeContour = contour {
@@ -206,18 +210,9 @@ private class MaurerRose : Animatable() {
             val nextPoint = getPointForAngle(angle, radius)
             if (curvesEnabled) continueTo(nextPoint) else lineTo(nextPoint)
         }
-        closeShapeIfEnabled(firstPoint)
     }
 
-
-    private fun ContourBuilder.closeShapeIfEnabled(firstPoint: Vector2) {
-        val closeShape = fillEnabled
-        if (closeShape) {
-            if (curvesEnabled) continueTo(firstPoint) else lineTo(firstPoint)
-        }
-    }
-
-    private fun Program.fillableShapeContour(): ShapeContour {
+    private fun Program.fillableCompleteShapeContour(): ShapeContour {
         val radius = drawer.height / 2.0 * zoom
         var angle = 0
         var nextPoint = getPointForAngle(0, radius)
@@ -228,6 +223,7 @@ private class MaurerRose : Animatable() {
             rosePoints.add(nextPoint)
         } while (!(angle > 360 && nextPoint.distanceTo(Vector2.ZERO) < 10.0))
 
+        // TODO Add support for curves j
         return ShapeContour.fromPoints(rosePoints, true)
     }
 
@@ -713,6 +709,39 @@ private val subtleEdges = NPointRadialGradient(
         ColorRGBa.MAROON.opacify(0.0),
         ColorRGBa.MAROON.opacify(0.3),
         ColorRGBa.MAGENTA.opacify(0.5),
-        ColorRGBa.YELLOW.opacify(0.5)
+        ColorRGBa.YELLOW.opacify(0.5),
     ), points = arrayOf(0.5, 0.8, 0.9, 1.0)
+)
+
+private val unstableGrowth = NPointRadialGradient(
+    arrayOf(
+        ColorRGBa.SADDLE_BROWN.opacify(0.9),
+        ColorRGBa.SEA_GREEN.opacify(0.5),
+        ColorRGBa.BLACK.opacify(0.0),
+        ColorRGBa.BLACK.opacify(0.0),
+        ColorRGBa.PALE_VIOLET_RED.opacify(0.5),
+        ColorRGBa.YELLOW.opacify(0.8),
+    ), points = arrayOf(0.0, 0.2, 0.4, 0.6, 0.9, 1.0)
+)
+
+private val bloomingHerb = NPointRadialGradient(
+    arrayOf(
+        ColorRGBa.FOREST_GREEN.opacify(0.9),
+        ColorRGBa.LIME_GREEN.opacify(0.5),
+        ColorRGBa.GREEN_YELLOW.opacify(0.9),
+        ColorRGBa.YELLOW.opacify(0.9),
+        ColorRGBa.MEDIUM_VIOLET_RED.opacify(0.9),
+        ColorRGBa.DARK_VIOLET.opacify(0.8),
+    ), points = arrayOf(0.0, 0.1, 0.3, 0.6, 0.9, 1.0)
+)
+
+private val beautifulFlower = NPointRadialGradient(
+    arrayOf(
+        ColorRGBa.LIME_GREEN.opacify(0.8),
+        ColorRGBa.GREEN_YELLOW.opacify(0.8),
+        ColorRGBa.YELLOW.opacify(0.9),
+        ColorRGBa.MEDIUM_VIOLET_RED.opacify(0.9),
+        ColorRGBa.DARK_RED.opacify(0.8),
+        ColorRGBa.DARK_VIOLET.opacify(0.8),
+    ), points = arrayOf(0.0, 0.1, 0.3, 0.6, 0.9, 1.0)
 )
