@@ -16,7 +16,7 @@ private val useDisplay = Display.LG_ULTRAWIDE
 private const val enableScreenshots = false
 private const val enableScreenRecording = false
 
-private val speed = Vector2(3.0, 0.0)
+private lateinit var bullet: Bullet
 
 /**
  * Keyboard shortcuts:
@@ -33,7 +33,8 @@ fun main() {
             setupScreenshotsIfEnabled()
             setupScreenRecordingIfEnabled()
 
-            val objects: List<Object> = createBullet() + createObstacles()
+            bullet = createBullet()
+            val objects: List<Object> = createObstacles() + bullet
             extend {
                 // DRAW
                 drawer.clear(ColorRGBa.BLACK)
@@ -59,9 +60,9 @@ private interface Object {
 private class Bullet(
     val y: Double,
     val speed: Vector2,
+    val width: Double = 60.0
 ) : Object {
 
-    private val width: Double = 60.0
     private val height: Double = 20.0
     private val radius: Double = 5.0
 
@@ -89,24 +90,25 @@ private class Bullet(
     }
 }
 
-private fun Program.createBullet() = listOf(
-    Bullet(
-        y = drawer.height / 2.0,
-        speed,
-    )
+private fun Program.createBullet() = Bullet(
+    y = drawer.height / 2.0,
+    speed = Vector2(0.5, 0.0),
+    width = 60.0,
 )
 
 private class Obstacle(
     x: Double,
-    val bulletY: Double,
     val speed: Vector2,
 ) : Object {
 
     private val width: Double = 20.0
-    private val height: Double = 60.0
+    private val height: Double = (bullet.width / bullet.speed.x) * speed.y
     private val radius: Double = 5.0
 
-    private val initialPosition = Vector2(x, -width)
+    val targetY = bullet.y - height
+    val collisionStartFrame = x / bullet.speed.x
+
+    private val initialPosition = Vector2(x, targetY - (collisionStartFrame * speed.y))
     var position = initialPosition
 
     override fun contour(): ShapeContour {
@@ -120,10 +122,33 @@ private class Obstacle(
 
 private fun Program.createObstacles() = listOf(
     Obstacle(
+        x = drawer.width / 40.0,
+        speed = Vector2(0.0, 1.0),
+    ),
+    Obstacle(
+        x = drawer.width / 10.0,
+        speed = Vector2(0.0, 4.0),
+    ),
+    Obstacle(
+        x = drawer.width / 7.0,
+        speed = Vector2(0.0, 1.0),
+    ),
+    Obstacle(
+        x = drawer.width / 5.0,
+        speed = Vector2(0.0, 3.0),
+    ),
+    Obstacle(
+        x = drawer.width / 4.0,
+        speed = Vector2(0.0, 2.0),
+    ),
+    Obstacle(
+        x = drawer.width / 3.0,
+        speed = Vector2(0.0, 1.0),
+    ),
+    Obstacle(
         x = drawer.width / 2.0,
-        bulletY = drawer.height / 2.0,
-        Vector2(0.0, 3.0),
-    )
+        speed = Vector2(0.0, 4.0),
+    ),
 )
 
 private fun Program.enableSpeedUp(bullet: List<Bullet>) {
