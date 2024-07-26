@@ -6,15 +6,20 @@ import org.openrndr.Program
 import org.openrndr.application
 import org.openrndr.color.ColorRGBa
 import org.openrndr.extensions.Screenshots
+import org.openrndr.extra.color.presets.BROWN
 import org.openrndr.extra.shapes.RoundedRectangle
 import org.openrndr.ffmpeg.ScreenRecorder
 import org.openrndr.math.Vector2
 import org.openrndr.shape.ShapeContour
+import kotlin.random.Random
 
 // sketch config
 private val useDisplay = Display.LG_ULTRAWIDE
 private const val enableScreenshots = false
 private const val enableScreenRecording = false
+
+private const val obstacleWidth = 20.0
+private const val obstacleSpacing = 5.0
 
 private lateinit var bullet: Bullet
 
@@ -34,15 +39,16 @@ fun main() {
             setupScreenRecordingIfEnabled()
 
             bullet = createBullet()
-            val objects: List<Object> = createObstacles() + bullet
+            val obstacles = createObstacles()
+            // DRAW
             extend {
-                // DRAW
                 drawer.clear(ColorRGBa.BLACK)
                 drawer.fill = ColorRGBa.WHITE
                 drawer.stroke = ColorRGBa.WHITE
-                drawer.contours(objects.map(Object::contour))
-
-                objects.forEach(Object::update)
+                val obstacleContours = obstacles.map { it.contour() }.flatten()
+                drawer.contours(obstacleContours)
+                obstacles.forEach { it.update() }
+                bullet.drawAndUpdate()
             }
 
             // UI
@@ -52,37 +58,47 @@ fun main() {
     }
 }
 
-private interface Object {
-    fun update()
-    fun contour(): ShapeContour
+private fun Program.createBullet() = Bullet(
+    y = drawer.height / 2.0,
+    speed = Vector2(3.0, 0.0),
+    width = 60.0,
+)
+
+private fun Program.createObstacles(): List<Obstacle> {
+    val numOfObstacles = drawer.width / (obstacleWidth + obstacleSpacing)
+    return List(numOfObstacles.toInt() + 1) {
+        Obstacle(
+            x = obstacleSpacing + it * (obstacleWidth + obstacleSpacing),
+            speed = 1.0,
+            direction = Direction.DOWN
+        )
+    }
 }
 
 private class Bullet(
     val y: Double,
     val speed: Vector2,
-    val width: Double = 60.0
-) : Object {
+    val width: Double,
+) {
 
-    private val height: Double = 20.0
-    private val radius: Double = 5.0
+    val height: Double = 20.0
+    private val radius: Double = 10.0
 
     private val initialPosition = Vector2(-width, y)
     var position = initialPosition
 
-    override fun contour(): ShapeContour {
-        return RoundedRectangle(position, width, height, radius).contour
+    context(Program)
+    fun drawAndUpdate() {
+        val contour = RoundedRectangle(position, width, height, radius).contour
+        drawer.fill = ColorRGBa.BROWN
+        drawer.stroke = ColorRGBa.BROWN
+        drawer.contour(contour)
+
+        update()
     }
 
-    override fun update() {
+    fun update() {
         position += speed
-    }
-
-    fun speedUp() {
-//        speed = normalSpeed * Vector2(2.0, 0.0)
-    }
-
-    fun speedDown() {
-//        speed = normalSpeed
     }
 
     fun reset() {
@@ -90,75 +106,91 @@ private class Bullet(
     }
 }
 
-private fun Program.createBullet() = Bullet(
-    y = drawer.height / 2.0,
-    speed = Vector2(0.5, 0.0),
-    width = 60.0,
-)
+enum class Direction(val factor: Double) {
+    UP(-1.0),
+    DOWN(1.0);
+
+    companion object {
+        fun random(): Direction {
+            return if (Random.nextBoolean()) UP else DOWN
+        }
+    }
+}
 
 private class Obstacle(
-    x: Double,
-    val speed: Vector2,
-) : Object {
+    private val x: Double,
+    private val speed: Double,
+    private val direction: Direction,
+) {
 
-    private val width: Double = 20.0
-    private val height: Double = (bullet.width / bullet.speed.x) * speed.y
-    private val radius: Double = 5.0
+    private val speedVector = Vector2(0.0, direction.factor * speed)
 
-    val targetY = bullet.y - height
-    val collisionStartFrame = x / bullet.speed.x
+    private val spaceHeight: Double = ((bullet.width) / bullet.speed.x) * speed
+    private val collisionStartFrameAbove = (x + obstacleWidth / 2.0) / bullet.speed.x
+    private val collisionStartFrameBelow = (x + obstacleWidth / 2.0) / bullet.speed.x
 
-    private val initialPosition = Vector2(x, targetY - (collisionStartFrame * speed.y))
-    var position = initialPosition
+    private val segments = generateSegments()
 
-    override fun contour(): ShapeContour {
-        return RoundedRectangle(position, width, height, radius).contour
+    private fun generateSegments(): List<ObstacleSegment> {
+        val aboveHeight = Random.nextDouble(20.0, 500.0)
+        val above = ObstacleSegment(
+            x = x,
+            height = aboveHeight,
+            offset = -aboveHeight - spaceHeight - direction.factor * (collisionStartFrameAbove * direction.factor * speed),
+            speedVector,
+        )
+        val belowHeight = Random.nextDouble(20.0, 500.0)
+        val below = ObstacleSegment(
+            x = x,
+            height = belowHeight,
+            offset = spaceHeight - direction.factor * (collisionStartFrameBelow * direction.factor * speed),
+            speedVector,
+        )
+        return listOf(
+            above,
+            below,
+        )
     }
 
-    override fun update() {
+    context(Program)
+    fun contour(): List<ShapeContour> {
+        return segments.map { it.contour() }
+    }
+
+    fun update() {
+        segments.forEach { it.update() }
+    }
+}
+
+private class ObstacleSegment(
+    x: Double,
+    private val height: Double,
+    offset: Double,
+    private val speed: Vector2,
+) {
+
+    private val radius: Double = 10.0
+
+    private val initialPosition = Vector2(x, bullet.y + offset)
+    var position = initialPosition
+
+    fun contour(): ShapeContour {
+        return RoundedRectangle(position, obstacleWidth, height, radius).contour
+    }
+
+    fun update() {
         position += speed
     }
 }
 
-private fun Program.createObstacles() = listOf(
-    Obstacle(
-        x = drawer.width / 40.0,
-        speed = Vector2(0.0, 1.0),
-    ),
-    Obstacle(
-        x = drawer.width / 10.0,
-        speed = Vector2(0.0, 4.0),
-    ),
-    Obstacle(
-        x = drawer.width / 7.0,
-        speed = Vector2(0.0, 1.0),
-    ),
-    Obstacle(
-        x = drawer.width / 5.0,
-        speed = Vector2(0.0, 3.0),
-    ),
-    Obstacle(
-        x = drawer.width / 4.0,
-        speed = Vector2(0.0, 2.0),
-    ),
-    Obstacle(
-        x = drawer.width / 3.0,
-        speed = Vector2(0.0, 1.0),
-    ),
-    Obstacle(
-        x = drawer.width / 2.0,
-        speed = Vector2(0.0, 4.0),
-    ),
-)
-
-private fun Program.enableSpeedUp(bullet: List<Bullet>) {
-    keyboard.keyDown.listen {
-        bullet.forEach(Bullet::speedUp)
-    }
-    keyboard.keyUp.listen {
-        bullet.forEach(Bullet::speedDown)
-    }
-}
+//private fun Program.enableSpeedUp(bullet: List<Bullet>) {
+//    keyboard.keyDown.listen {
+//        bullet.forEach(Bullet::speedUp)
+//    }
+//    keyboard.keyUp.listen {
+//        bullet.forEach(Bullet::speedDown)
+//    }
+//}
 //
 //private fun Program.enableReset(bullet: List<Bullet>) {
 //    resetOn("space") {
