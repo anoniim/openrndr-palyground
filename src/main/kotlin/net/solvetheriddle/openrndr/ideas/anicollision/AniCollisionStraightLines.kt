@@ -60,7 +60,7 @@ fun main() {
 
 private fun Program.createBullet() = Bullet(
     y = drawer.height / 2.0,
-    speed = Vector2(3.0, 0.0),
+    speed = Vector2(4.0, 0.0),
     width = 60.0,
 )
 
@@ -69,8 +69,9 @@ private fun Program.createObstacles(): List<Obstacle> {
     return List(numOfObstacles.toInt() + 1) {
         Obstacle(
             x = obstacleSpacing + it * (obstacleWidth + obstacleSpacing),
-            speed = 1.0,
-            direction = Direction.DOWN
+//            speed = Random.nextDouble(2.0, 5.0),
+            speed = 2.0,
+            direction = Direction.random()
         )
     }
 }
@@ -117,6 +118,11 @@ enum class Direction(val factor: Double) {
     }
 }
 
+enum class Position {
+    ABOVE,
+    BELOW
+}
+
 private class Obstacle(
     private val x: Double,
     private val speed: Double,
@@ -124,33 +130,38 @@ private class Obstacle(
 ) {
 
     private val speedVector = Vector2(0.0, direction.factor * speed)
-
-    private val spaceHeight: Double = ((bullet.width) / bullet.speed.x) * speed
-    private val collisionStartFrameAbove = (x + obstacleWidth / 2.0) / bullet.speed.x
-    private val collisionStartFrameBelow = (x + obstacleWidth / 2.0) / bullet.speed.x
-
     private val segments = generateSegments()
 
     private fun generateSegments(): List<ObstacleSegment> {
-        val aboveHeight = Random.nextDouble(20.0, 500.0)
-        val above = ObstacleSegment(
-            x = x,
-            height = aboveHeight,
-            offset = -aboveHeight - spaceHeight - direction.factor * (collisionStartFrameAbove * direction.factor * speed),
-            speedVector,
-        )
-        val belowHeight = Random.nextDouble(20.0, 500.0)
-        val below = ObstacleSegment(
-            x = x,
-            height = belowHeight,
-            offset = spaceHeight - direction.factor * (collisionStartFrameBelow * direction.factor * speed),
-            speedVector,
-        )
+        val above = generateSegment(Position.ABOVE)
+        val below = generateSegment(Position.BELOW)
         return listOf(
             above,
             below,
         )
     }
+
+    private fun generateSegment(position: Position): ObstacleSegment {
+        val height = Random.nextDouble(20.0, 500.0)
+        val subtractHeight = if (shouldSubtractHeight(position)) -direction.factor * height else 0.0
+        val bulletHeight = if (shouldAddBulletHeight(position)) bullet.height else 0.0
+        val bulletWidth = if (shouldAddBulletWidth(position)) bullet.width else 0.0
+        val collisionStartFrame = (bulletWidth + x + obstacleWidth / 2.0) / bullet.speed.x
+        return ObstacleSegment(
+            x = x,
+            height = height,
+            offset = bulletHeight + direction.factor * subtractHeight - direction.factor * collisionStartFrame * speed,
+            speedVector,
+        )
+    }
+
+    private fun shouldSubtractHeight(position: Position) = position == Position.ABOVE
+
+    private fun shouldAddBulletWidth(position: Position) =
+        (position == Position.ABOVE && direction == Direction.DOWN)
+                || (position == Position.BELOW && direction == Direction.UP)
+
+    private fun shouldAddBulletHeight(position: Position) = position == Position.BELOW
 
     context(Program)
     fun contour(): List<ShapeContour> {
