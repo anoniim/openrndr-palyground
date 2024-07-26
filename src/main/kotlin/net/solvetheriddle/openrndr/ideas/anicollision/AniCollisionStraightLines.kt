@@ -59,7 +59,7 @@ fun main() {
 }
 
 private fun Program.createBullet() = Bullet(
-    y = drawer.height / 3.0,
+    y = drawer.height / 2.0,
     speed = Vector2(4.0, 0.0),
     width = 60.0,
 )
