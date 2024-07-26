@@ -6,7 +6,8 @@ import org.openrndr.Program
 import org.openrndr.application
 import org.openrndr.color.ColorRGBa
 import org.openrndr.extensions.Screenshots
-import org.openrndr.extra.color.presets.BROWN
+import org.openrndr.extra.color.presets.AQUAMARINE
+import org.openrndr.extra.color.presets.BLUE_STEEL
 import org.openrndr.extra.shapes.RoundedRectangle
 import org.openrndr.ffmpeg.ScreenRecorder
 import org.openrndr.math.Vector2
@@ -14,7 +15,7 @@ import org.openrndr.shape.ShapeContour
 import kotlin.random.Random
 
 // sketch config
-private val useDisplay = Display.LG_ULTRAWIDE
+private val useDisplay = Display.LG_SQUARE_LEFT
 private const val enableScreenshots = false
 private const val enableScreenRecording = false
 
@@ -26,7 +27,6 @@ private lateinit var bullet: Bullet
 /**
  * Keyboard shortcuts:
  * - press space to reset
- * - hold enter to speed up
  */
 fun main() {
     application {
@@ -43,8 +43,8 @@ fun main() {
             // DRAW
             extend {
                 drawer.clear(ColorRGBa.BLACK)
-                drawer.fill = ColorRGBa.WHITE
-                drawer.stroke = ColorRGBa.WHITE
+                drawer.fill = ColorRGBa.BLUE_STEEL
+                drawer.stroke = ColorRGBa.BLUE_STEEL
                 val obstacleContours = obstacles.map { it.contour() }.flatten()
                 drawer.contours(obstacleContours)
                 obstacles.forEach { it.update() }
@@ -59,7 +59,7 @@ fun main() {
 }
 
 private fun Program.createBullet() = Bullet(
-    y = drawer.height / 2.0,
+    y = drawer.height / 3.0,
     speed = Vector2(4.0, 0.0),
     width = 60.0,
 )
@@ -91,8 +91,8 @@ private class Bullet(
     context(Program)
     fun drawAndUpdate() {
         val contour = RoundedRectangle(position, width, height, radius).contour
-        drawer.fill = ColorRGBa.BROWN
-        drawer.stroke = ColorRGBa.BROWN
+        drawer.fill = ColorRGBa.AQUAMARINE
+        drawer.stroke = ColorRGBa.AQUAMARINE
         drawer.contour(contour)
 
         update()
@@ -138,11 +138,23 @@ private class Obstacle(
         return listOf(
             above,
             below,
-        )
+        ) + addMore(above, Position.ABOVE) + addMore(below, Position.BELOW)
+    }
+
+    private fun addMore(baseObstacle: ObstacleSegment, position: Position): List<ObstacleSegment> {
+        var previousOffset = baseObstacle.offset + if (position == Position.BELOW) baseObstacle.height else 0.0
+        return List(5) {
+            val height = Random.nextInt(1, 5) * bullet.width
+            val spacing = bullet.width
+            val additionalOffset = if (position == Position.ABOVE) -1.0 * (spacing + height) else spacing
+            val currentOffset = previousOffset + additionalOffset
+            previousOffset += additionalOffset + if (position == Position.BELOW) height else 0.0
+            ObstacleSegment(baseObstacle.x, height, currentOffset, baseObstacle.speed)
+        }
     }
 
     private fun generateSegment(position: Position): ObstacleSegment {
-        val height = Random.nextDouble(20.0, 500.0)
+        val height = Random.nextInt(1, 5) * bullet.width
         val subtractHeight = if (shouldSubtractHeight(position)) -direction.factor * height else 0.0
         val bulletHeight = if (shouldAddBulletHeight(position)) bullet.height else 0.0
         val bulletWidth = if (shouldAddBulletWidth(position)) bullet.width else 0.0
@@ -174,10 +186,10 @@ private class Obstacle(
 }
 
 private class ObstacleSegment(
-    x: Double,
-    private val height: Double,
-    offset: Double,
-    private val speed: Vector2,
+    val x: Double,
+    val height: Double,
+    val offset: Double,
+    val speed: Vector2,
 ) {
 
     private val radius: Double = 10.0
@@ -194,15 +206,6 @@ private class ObstacleSegment(
     }
 }
 
-//private fun Program.enableSpeedUp(bullet: List<Bullet>) {
-//    keyboard.keyDown.listen {
-//        bullet.forEach(Bullet::speedUp)
-//    }
-//    keyboard.keyUp.listen {
-//        bullet.forEach(Bullet::speedDown)
-//    }
-//}
-//
 //private fun Program.enableReset(bullet: List<Bullet>) {
 //    resetOn("space") {
 //        bullet.forEach(Bullet::reset)
