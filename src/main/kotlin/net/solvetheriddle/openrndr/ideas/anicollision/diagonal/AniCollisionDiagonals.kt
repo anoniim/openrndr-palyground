@@ -1,4 +1,4 @@
-package net.solvetheriddle.openrndr.ideas.anicollision
+package net.solvetheriddle.openrndr.ideas.anicollision.diagonal
 
 import net.solvetheriddle.openrndr.Display
 import net.solvetheriddle.openrndr.sketchSize
